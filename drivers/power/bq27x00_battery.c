@@ -41,7 +41,7 @@
 #include <linux/wakelock.h>
 #include <linux/power/bq27x00_battery.h>
 
-#if 0
+#if 1
 #define pr_axs(format, args...) printk("<bat_fg> %s: "format, __func__, ##args)
 #define fg_dbg(format, args...) printk("<fg> %s: "format, __func__, ##args)
 #else
@@ -1781,7 +1781,7 @@ static irqreturn_t soc_int_irq_threaded_handler(int irq, void *arg)
 	struct bq27x00_device_info *di = arg;
 	int flags;
 
-	dev_info(di->dev, "soc_int\n");
+	fg_dbg("soc_int\n");
 
 	/* the actual SysDown event is processed in the normal update path */
 
@@ -2462,6 +2462,6 @@ static void __exit bq27x00_battery_exit(void)
 }
 module_exit(bq27x00_battery_exit);
 
-MODULE_AUTHOR("Rodolfo Giometti <giometti@linux.it");
+MODULE_AUTHOR("Rodolfo Giometti <giometti@linux.it>");
 MODULE_DESCRIPTION("BQ27x00 battery monitor driver");
 MODULE_LICENSE("GPL");

@@ -40,6 +40,9 @@
 
 #include <linux/wakelock.h>
 #include <linux/power/bq27x00_battery.h>
+#include <linux/mfd/intel_mid_pmic.h>
+
+#define LENOVO_SPARK
 
 #if 1
 #define pr_axs(format, args...) printk("<bat_fg> %s: "format, __func__, ##args)
@@ -129,31 +132,31 @@ static char debug_1hz_buffer[500] = {0,};
 static char subclass_buffer[500] = {0,};
 
 enum bq27x00_reg_index {
-	BQ27x00_REG_TEMP = 0x02,
-	BQ27x00_REG_INT_TEMP = 0x1e,
-	BQ27x00_REG_VOLT = 0x04,
-	BQ27x00_REG_AI = 0x10,
-	BQ27x00_REG_FLAGS = 0x06,
+	BQ27x00_REG_TEMP = 0,
+	BQ27x00_REG_INT_TEMP = 1,
+	BQ27x00_REG_VOLT = 2,
+	BQ27x00_REG_AI = 3,
+	BQ27x00_REG_FLAGS = 4,
 	BQ27x00_REG_TTE = 5,
 	BQ27x00_REG_TTF = 6,
 	BQ27x00_REG_TTES = 7,
 	BQ27x00_REG_TTECP = 8,
-	BQ27x00_REG_NAC = 0x08,
+	BQ27x00_REG_NAC = 9,
 	BQ27x00_REG_LMD = 10,
 	BQ27x00_REG_CC = 11,
 	BQ27x00_REG_AE = 12,
-	BQ27x00_REG_RSOC = 0x1c,
+	BQ27x00_REG_RSOC = 13,
 	BQ27x00_REG_ILMD = 14,
 	BQ27x00_REG_SOC = 15,
 	BQ27x00_REG_DCAP = 16,
 	BQ27x00_REG_CTRL = 17,
 	BQ27x00_REG_AR = 18,
 	BQ27x00_REG_ARTE = 19,
-	BQ27x00_REG_FAC = 0x0a,
-	BQ27x00_REG_RM = 0x0c,
-	BQ27x00_REG_FCC = 0x0e,
+	BQ27x00_REG_FAC = 20,
+	BQ27x00_REG_RM = 21,
+	BQ27x00_REG_FCC = 22,
 	BQ27x00_REG_STBYI = 23,
-	BQ27x00_REG_SOH = 0x20,
+	BQ27x00_REG_SOH = 24,
 	BQ27x00_REG_INSTI = 25,
 	BQ27x00_REG_RSCLE = 26,
 	BQ27x00_REG_OC = 27,
@@ -182,31 +185,31 @@ enum bq27x00_reg_index {
 
 /* BQ27541 register */
 static u8 bq27541_regs[] = {
-	0x06,  // TEMP 
-	0x28,  // INTTEMP
-	0x08,  // VOLT
-	0x14,  // AI
-	0x0A,  // FLAGS
+	0x02,  // TEMP 
+	0x1e,  // INTTEMP
+	0x04,  // VOLT
+	0x10,  // AI
+	0x06,  // FLAGS
 	0x16,  // TTE
 	0xFF,  // TTF *
 	0xFF,  // TTES *
 	0xFF,  // TTECP *
-	0x0C,  // NAC
+	0x08,  // NAC
 	0xFF,  // LMD *
 	0x2A,  // CC
 	0xFF,  // AE *
-	0xFF,  // RSOC *
+	0x1c,  // RSOC *
 	0xFF,  // ILMD *
 	0x2C,  // SOC
 	0x3C,  // DCAP
 	0x00,  // CTRL
 	0x02,  // AR
 	0xFF,  // ARTE *
-	0x0E,  // FAC 
-	0x10,  // RM
-	0x12,  // FCC
+	0x0a,  // FAC 
+	0x0c,  // RM
+	0x0e,  // FCC
 	0xFF,  // STBYI*
-	0x2E,  // SOH
+	0x20,  // SOH
 	0xFF,  // INSTI *
 
 	0xFF,  // RSCLE *
@@ -251,9 +254,122 @@ static int bq27x00_dump_dataflash(struct bq27x00_device_info *di);
 static int bq27x00_dump_partial_dataflash(struct bq27x00_device_info *di);
 static int bq27x00_control_cmd(struct bq27x00_device_info *di, u16 cmd);
 static void bq27x00_reset_registers(struct bq27x00_device_info *di);
+#ifndef LENOVO_SPARK
 static int bq27x00_battery_read_control_reg(struct bq27x00_device_info *di);
+#endif
 static int bq27x00_read_block_i2c(struct bq27x00_device_info *di, u8 reg,
 	unsigned char *buf, size_t len);
+
+#ifdef LENOVO_SPARK
+#define MANCONV0			0x72
+#define BPTHERM0_RSLTH		0x7a
+#define BPTHERM0_RSLTL		0x7b
+#define THEMCTRL0_ENABLE	0x8e
+#define THERM_ENABLE		0x90
+
+#define BPTHERM0_MASK		0x08
+
+/*
+	8inch Innolux adc 0x9
+	8inch BOE adc 0x60
+	other unknow suppose 0x1ff
+*/
+
+unsigned int intel_adc_read_battemp(void)
+{
+	int tctl0_bak, mask_bak;
+	unsigned int res;
+
+	tctl0_bak = intel_mid_pmic_readb(THEMCTRL0_ENABLE);
+	intel_mid_pmic_setb(THEMCTRL0_ENABLE, 0x01);
+
+	//enable bptherm0
+	mask_bak = intel_mid_pmic_readb(THERM_ENABLE);
+	intel_mid_pmic_setb(THERM_ENABLE, mask_bak | BPTHERM0_MASK);
+
+	// start all the sample and conversion
+	intel_mid_pmic_setb(MANCONV0, 0xFF);
+
+	while(intel_mid_pmic_readb(MANCONV0) & BPTHERM0_MASK == 0);
+
+	res = ((intel_mid_pmic_readb(BPTHERM0_RSLTH) & 0x3) << 8) + intel_mid_pmic_readb(BPTHERM0_RSLTL);
+
+	intel_mid_pmic_setb(THERM_ENABLE, mask_bak);
+	intel_mid_pmic_setb(THEMCTRL0_ENABLE, tctl0_bak);
+
+	return res;
+}
+
+struct batt_adc_temp {
+	unsigned int  adcvalue;
+	int  temp;
+};
+
+static struct batt_adc_temp delta_temp[] =
+{
+	{1012, -40},
+	{ 954, -10},
+	{ 929,   0},
+	{ 917,   5},
+	{ 901,  10},
+	{ 860,  20},
+	{ 808,  30},
+	{ 718,  45},
+	{ 675,  50},
+	{ 613,  60},
+	{ 535,  70},
+	{ 470,  80},
+	{ 403,  90},
+	{ 341, 100},
+};
+
+static int temadc_convert_temp(unsigned int  value)
+{
+	int num_array = sizeof(delta_temp) / sizeof(delta_temp[0]);
+	int i = 0;
+
+	if(value >= delta_temp[0].adcvalue)
+		return delta_temp[0].temp*10;
+
+	if(value <= delta_temp[num_array - 1].adcvalue)
+		return delta_temp[num_array - 1].temp * 10;
+
+	for(i = 0; i < num_array; i++)
+		if(delta_temp[i].adcvalue < value)
+			break;
+
+	return delta_temp[i - 1].temp * 10 +(delta_temp[i].temp - delta_temp[i - 1].temp) * (delta_temp[i - 1].adcvalue - value) * 10 / (delta_temp[i - 1].adcvalue - delta_temp[i].adcvalue);
+}
+
+static int read_battery_temp(void)
+{
+	unsigned int max, min, sumup, temp;
+	int i, j;
+
+	for(i = 0; i < 3; i++)
+	{
+		temp = intel_adc_read_battemp();
+
+		if(i == 0)
+			max = min = sumup = temp;
+		else
+		{
+			sumup += temp;
+
+			if(temp > max)
+				max = temp;
+
+			if(min > temp)
+				min = temp;
+		}
+
+	}
+
+	sumup -= min + max;
+
+	return temadc_convert_temp(sumup);
+}
+#endif
 
 enum bq27x00_chip { BQ27000, BQ27500 };
 
@@ -438,6 +554,7 @@ static inline int bq27x00_write(struct bq27x00_device_info *di, int reg_index,
  * Return the battery Raw State-of-Charge
  * Or < 0 if something fails.
  */
+#ifndef LENOVO_SPARK
 static int bq27x00_battery_read_raw_soc(struct bq27x00_device_info *di)
 {
 	int rsoc;
@@ -449,6 +566,7 @@ static int bq27x00_battery_read_raw_soc(struct bq27x00_device_info *di)
 
 	return rsoc;
 }
+#endif
 
 /*
  * Return the battery Relative State-of-Charge
@@ -458,10 +576,7 @@ static int bq27x00_battery_read_rsoc(struct bq27x00_device_info *di)
 {
 	int rsoc;
 
-	if (di->chip == BQ27500)
-		rsoc = bq27x00_read_reg(di, BQ27x00_REG_RSOC, false);
-	else
-		rsoc = bq27x00_read(di, BQ27x00_REG_RSOC, true);
+	rsoc = bq27x00_read(di, BQ27x00_REG_RSOC, true);
 
 	if (rsoc < 0)
 		dev_err(di->dev, "error reading relative State-of-Charge\n");
@@ -539,6 +654,7 @@ static int bq27x00_battery_read_ilmd(struct bq27x00_device_info *di)
  * Return the battery Cycle count total
  * Or < 0 if something fails.
  */
+#ifndef LENOVO_SPARK
 static int bq27x00_battery_read_cyct(struct bq27x00_device_info *di)
 {
 	int cyct;
@@ -569,6 +685,41 @@ static int bq27x00_battery_read_time(struct bq27x00_device_info *di, u8 reg)
 
 	return tval * 60;
 }
+#else
+static int lenovo_read_battery_temperature_crap(void)
+{
+	static int flag_no_read_temp = 1, dvt1_board_detect = 1, is_dvt1_board = 0;
+	int temperature = 250; //default is 25C
+	
+	if(flag_no_read_temp)
+	{
+		flag_no_read_temp = 0;
+	}
+	else
+	{
+		/* detect board is dvt1 or other */
+		if(dvt1_board_detect)
+		{
+			temperature = read_battery_temp();
+			if(temperature > 600) // more than 60C is not normal
+			{
+				printk(KERN_ERR "This is DVT1 board,no battery senosr and set temp 25 degree \n");
+				temperature = 250;
+				is_dvt1_board = 1;
+			}
+			else
+				is_dvt1_board = 0;
+
+			dvt1_board_detect = 0;
+		}
+
+		if(!is_dvt1_board)
+			temperature = read_battery_temp();
+	}
+	
+	return temperature;
+}
+#endif
 
 static void bq27x00_update(struct bq27x00_device_info *di)
 {
@@ -579,12 +730,13 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 	int block_len;
 	struct timespec ts;
 
-	cache.flags = bq27x00_read_reg(di, BQ27x00_REG_FLAGS, false);
+	cache.flags = bq27x00_read(di, BQ27x00_REG_FLAGS, false);
 
 	if (cache.flags >= 0) {
 		getnstimeofday(&ts);
 		cache.timestamp = ts;
 		cache.capacity = bq27x00_battery_read_rsoc(di);
+#ifndef LENOVO_SPARK
 		cache.raw_capacity = bq27x00_battery_read_raw_soc(di);
 		cache.temperature = bq27x00_read(di, BQ27x00_REG_TEMP, false);
 		cache.internal_temp = bq27x00_read(di, BQ27x00_REG_INT_TEMP, false);
@@ -594,6 +746,9 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 		cache.charge_full = bq27x00_battery_read_lmd(di);
 		cache.cycle_count = bq27x00_battery_read_cyct(di);
 		cache.control = bq27x00_battery_read_control_reg(di);
+#else
+		cache.temperature = lenovo_read_battery_temperature_crap();
+#endif
 		cache.voltage = bq27x00_read(di, BQ27x00_REG_VOLT, false);
 		cache.nom_avail_cap = bq27x00_read(di, BQ27x00_REG_NAC, false);
 		cache.full_avail_cap = bq27x00_read(di, BQ27x00_REG_FAC, false);
@@ -601,6 +756,7 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 		cache.average_i = bq27x00_read(di, BQ27x00_REG_AI, false);
 		cache.remain_cap = bq27x00_read(di, BQ27x00_REG_RM, false);
 		cache.state_of_health = bq27x00_read(di, BQ27x00_REG_SOH, false);
+#ifndef LENOVO_SPARK
 		cache.instant_i = bq27x00_read(di, BQ27x00_REG_INSTI, false);
 		cache.r_scale = bq27x00_read(di, BQ27x00_REG_RSCLE, false);
 		cache.true_cap = bq27x00_read(di, BQ27x00_REG_TRUECAP, false);
@@ -608,6 +764,7 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 		cache.true_soc = bq27x00_read(di, BQ27x00_REG_TRUESOC, false);
 
 		cache.DOD0 = bq27x00_read(di, BQ27541_DOD0, false);
+#endif
 
 		block_addr = 0x61;
 		block_len  = 11;
@@ -651,11 +808,6 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 		/* We only have to read charge design full once */
 		if (di->charge_design_full <= 0)
 			di->charge_design_full = bq27x00_battery_read_ilmd(di);
-	dev_info(di->dev,"Battery %d,%d,%d,0x%04X\n",
-				cache.remain_cap,
-				cache.full_charge_cap,
-				(int)((s16)cache.average_i),
-				cache.flags);
 	}
 
 	/*
@@ -871,7 +1023,7 @@ static int bq27x00_battery_current(struct bq27x00_device_info *di,
 	int curr;
 
 	if (di->chip == BQ27500)
-	    curr = bq27x00_read_reg(di, BQ27x00_REG_AI, false);
+	    curr = bq27x00_read(di, BQ27x00_REG_AI, false);
 	else
 	    curr = di->cache.current_now;
 
@@ -894,7 +1046,7 @@ static int bq27x00_battery_current(struct bq27x00_device_info *di,
 
 	return 0;
 }
-extern int battery_is_charging();
+extern int battery_is_charging(void);
 static int bq27x00_battery_status(struct bq27x00_device_info *di,
 	union power_supply_propval *val)
 {
@@ -932,7 +1084,7 @@ static int bq27x00_battery_voltage(struct bq27x00_device_info *di,
 {
 	int volt;
 
-	volt = bq27x00_read_reg(di, BQ27x00_REG_VOLT, false);
+	volt = bq27x00_read(di, BQ27x00_REG_VOLT, false);
 	if (volt < 0)
 		return volt;
 
@@ -950,7 +1102,7 @@ static int bq27x00_battery_energy(struct bq27x00_device_info *di,
 {
 	int ae;
 
-	ae = bq27x00_read_reg(di, BQ27x00_REG_NAC, false);
+	ae = bq27x00_read(di, BQ27x00_REG_NAC, false);
 	if (ae < 0) {
 		dev_err(di->dev, "error reading available energy\n");
 		return ae;
@@ -1028,6 +1180,8 @@ static int bq27x00_battery_set_property(struct power_supply *psy,
 {
 	fg_dbg("psy_name %s, psp %d, val %d\n", psy->name, psp, val->intval);
 	fg_dbg("NULL Function\n");
+
+	return 0;
 }
 
 static int bq27x00_battery_get_property(struct power_supply *psy,
@@ -1123,7 +1277,7 @@ static int bq27x00_battery_get_property(struct power_supply *psy,
 		fg_dbg("POWER_SUPPLY_PROP_ENERGY_NOW, val = %d\n", val->intval);
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
-		ret = bq27x00_read_reg(di, BQ27x00_REG_SOH, false);
+		ret = bq27x00_read(di, BQ27x00_REG_SOH, false);
 		
 		fg_dbg("POWER_SUPPLY_PROP_HEALTH, val = %d\n", val->intval);
 
@@ -1248,8 +1402,8 @@ static int bq27x00_powersupply_init(struct bq27x00_device_info *di)
 	 * Read the battery temp now to prevent races between userspace reading
 	 * properties and battery "detection" logic.
 	 */
-	di->cache.temperature = bq27x00_read_reg(di, BQ27x00_REG_TEMP, false);
-	di->cache.internal_temp = bq27x00_read_reg(di, BQ27x00_REG_INT_TEMP, false);
+	di->cache.temperature = bq27x00_read(di, BQ27x00_REG_TEMP, false);
+	di->cache.internal_temp = bq27x00_read(di, BQ27x00_REG_INT_TEMP, false);
 
 	/*
 	 * NOTE: Properties can be read as soon as we register the power supply.
@@ -1448,15 +1602,18 @@ static int bq27x00_battery_read_fw_version(struct bq27x00_device_info *di)
 	return bq27x00_read_i2c(di, CMD_CONTROL, false);
 }
 
+#ifndef LENOVO_SPARK
 static int bq27x00_battery_read_control_reg(struct bq27x00_device_info *di)
 {
-        bq27x00_write_i2c(di, CMD_CONTROL, 0 , false);
+	bq27x00_write_i2c(di, CMD_CONTROL, 0 , false);
 
-        msleep(10);
+	msleep(10);
 
-        return bq27x00_read_i2c(di, CMD_CONTROL, false);
+	return bq27x00_read_i2c(di, CMD_CONTROL, false);
 }
+#endif
 
+#if 0 //Unused
 static int bq27x00_battery_read_control(struct bq27x00_device_info *di, int sub_cmd)
 {
 	bq27x00_write_i2c(di, CMD_CONTROL, sub_cmd, false);
@@ -1465,6 +1622,7 @@ static int bq27x00_battery_read_control(struct bq27x00_device_info *di, int sub_
 
 	return bq27x00_read_i2c(di, CMD_CONTROL, false);
 }
+#endif
 
 static int bq27x00_battery_read_device_type(struct bq27x00_device_info *di)
 {
@@ -1528,7 +1686,7 @@ static int dump_and_store_subclass(struct bq27x00_device_info *di, u8 subclass, 
 		/* set sebclass offset 0x00 */
 		ret = bq27x00_write_i2c(di, 0x3f, offset, true);
 		if (ret) {
-			dev_warn(di->dev, "Failed to write (set subclass offset %d): %d\n", offset, ret);
+			dev_warn(di->dev, "Failed to write (set subclass offset %zu): %d\n", offset, ret);
 			goto error;
 		}
 
@@ -1537,14 +1695,14 @@ static int dump_and_store_subclass(struct bq27x00_device_info *di, u8 subclass, 
 		/* read in subclass block */
 		ret = bq27x00_read_block_i2c(di, 0x40, data, count);
 		if (ret) {
-			dev_warn(di->dev, "Failed to read block count=%d: %d\n", count, ret);
+			dev_warn(di->dev, "Failed to read block count=%zd: %d\n", count, ret);
 			goto error;
 		}
 
 		header_used = scnprintf(
 			subclass_buffer+buffer_used,
 			sizeof(subclass_buffer) - buffer_used,
-			"bq27x00 DF: %ld.%ld subclass=0x%02x len=%02u blk=%u count=%02u: ",
+			"bq27x00 DF: %ld.%ld subclass=0x%02x len=%02zu blk=%zu count=%02zu: ",
 			ts.tv_sec, ts.tv_nsec/100000000,
 			subclass, len, offset, count);
 		buffer_used += header_used;
@@ -1787,7 +1945,7 @@ static irqreturn_t soc_int_irq_threaded_handler(int irq, void *arg)
 
 	mutex_lock(&di->lock);
 
-	flags = bq27x00_read_reg(di, BQ27x00_REG_FLAGS, false);
+	flags = bq27x00_read(di, BQ27x00_REG_FLAGS, false);
 /*
 	if (flags & SYSDOWN_BIT) {
 		dev_warn(di->dev, "detected SYSDOWN condition, pulsing poweroff switch\n");
@@ -1837,7 +1995,7 @@ static ssize_t show_registers(struct device *dev,
 	bq27x00_write_i2c(di, CMD_CONTROL, CMD_CONTROL_DF_VER, false);
 	printk("CMD_CONTROL_DF_VER		[0x%04X] = 0x%04X\n", CMD_CONTROL_DF_VER, bq27x00_read_i2c(di, CMD_CONTROL, false));
 	printk("\n");
-/*	
+/*
 	fg_dbg("CMD_ATRATE				[0x%02X] = %d\n", CMD_ATRATE, bq27x00_read_reg(di, CMD_ATRATE, false));
 	fg_dbg("CMD_UF_SOC				[0x%02X] = %d\n", CMD_UF_SOC, bq27x00_read_reg(di, CMD_UF_SOC, false));
 	fg_dbg("CMD_TEMP				[0x%02X] = %d\n", CMD_TEMP, bq27x00_read_reg(di, CMD_TEMP, false));

@@ -1,6 +1,6 @@
 DRIVER_NAME := vxd392
 
-obj-y += $(DRIVER_NAME).o
+obj-m += $(DRIVER_NAME).o
 
 MEDIADIR=../..
 BAYTRAILDIR=$(MEDIADIR)/common/baytrail

@@ -1,5 +1,5 @@
 /*
- * Copyright ? 2013 Intel Corporation
+ * Copyright © 2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -102,12 +102,12 @@ bool nt51021_init(struct intel_dsi_device *dsi)
 void nt51021_create_resources(struct intel_dsi_device *dsi) { }
 void nt51021_enable(struct intel_dsi_device *dsi)
 {
-    //fix me,maybe doesn't need me
-    /*
+	//fix me,maybe doesn't need me
+	/*
 	struct intel_dsi *intel_dsi = container_of(dsi, struct intel_dsi, dev);
-	intel_dsi->hs=0;+	dsi_vc_dcs_write_1(intel_dsi, 0, 1, 0); //soft reset 
+	intel_dsi->hs=0;
+	dsi_vc_dcs_write_1(intel_dsi, 0, 1, 0); //soft reset 
 	*/
-	return;
 }
 
 void nt51021_dpms(struct intel_dsi_device *dsi, bool enable)
@@ -125,7 +125,6 @@ void nt51021_dpms(struct intel_dsi_device *dsi, bool enable)
 		dsi_vc_dcs_write_0(intel_dsi, 0, MIPI_DCS_SET_DISPLAY_ON);
 		dsi_vc_dcs_write_1(intel_dsi, 0, 0x14, 0x55);
 		//dsi_vc_generic_write_2(intel_dsi, 0, nt51021_soft_reset[0], nt51021_soft_reset[1]); //soft reset
-
 	} else {
 		dsi_vc_dcs_write_0(intel_dsi, 0, MIPI_DCS_SET_DISPLAY_OFF);
 		dsi_vc_dcs_write_0(intel_dsi, 0, MIPI_DCS_ENTER_SLEEP_MODE);
@@ -228,7 +227,6 @@ void nt5102_send_otp_cmds(struct intel_dsi_device *dsi)
 	dsi_vc_dcs_write_1(intel_dsi,0,0xA0,0x2D);
 	dsi_vc_dcs_write_1(intel_dsi,0,0xA1,0x2D);
 	//mutex_unlock(&(dev_priv->i915_bklt_control_mutex));
-
 }
 
 

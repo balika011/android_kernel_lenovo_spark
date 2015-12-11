@@ -34,6 +34,6 @@ void panel_handler(struct sfi_device_table_entry *pentry,
 			break;
 		}
 	if (i == NUM_SUPPORT_PANELS)
-		pr_err("Could not detected this panel, set to default panel\n");
+		pr_err("Could not detect this panel, set to default panel\n");
 	pr_info("Panel name = %16.16s PanelID = %d\n", pentry->name, PanelID);
 }

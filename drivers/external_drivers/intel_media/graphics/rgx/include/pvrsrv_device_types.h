@@ -51,7 +51,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  ******************************************************************************
  * List of known device types.
  *****************************************************************************/
-typedef enum _PVRSRV_DEVICE_TYPE_
+typedef enum PVRSRV_DEVICE_TYPE
 {
 	PVRSRV_DEVICE_TYPE_UNKNOWN			= 0,  /*!< Unknown device type */
 	PVRSRV_DEVICE_TYPE_MBX1				= 1,  /*!< MBX1 */
@@ -64,10 +64,8 @@ typedef enum _PVRSRV_DEVICE_TYPE_
 	PVRSRV_DEVICE_TYPE_VGX				= 8,  /*!< VGX */
 	PVRSRV_DEVICE_TYPE_EXT				= 9,  /*!< 3rd party devices take ext type */
 	PVRSRV_DEVICE_TYPE_RGX				= 10, /*!< RGX */
-	PVRSRV_DEVICE_TYPE_TOPAZ                        = 11, /*!< TOPAZ */
 
-
-    PVRSRV_DEVICE_TYPE_LAST             = 11, /*!< Last device type */
+    PVRSRV_DEVICE_TYPE_LAST             = 10, /*!< Last device type */
 
 	PVRSRV_DEVICE_TYPE_FORCE_I32		= 0x7fffffff /*!< Force enum to be 32-bit width */
 
@@ -103,6 +101,12 @@ typedef struct _PVRSRV_DEVICE_IDENTIFIER_
 	IMG_CHAR				*pszPDumpRegName;	/*!< Pdump register bank name */
 
 } PVRSRV_DEVICE_IDENTIFIER;
+
+
+#if defined(KERNEL) && defined(ANDROID)
+#define __pvrsrv_defined_struct_enum__
+#include <services_kernel_client.h>
+#endif
 
 #endif /* __PVRSRV_DEVICE_TYPES_H__ */
 

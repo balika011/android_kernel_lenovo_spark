@@ -47,12 +47,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 extern "C" {
 #endif
 
+#if defined(KERNEL) && defined(ANDROID)
+#define __pvrsrv_defined_struct_enum__
+#include <services_kernel_client.h>
+#endif
+
 #include "device.h"
 #include "resman.h"
 #include "power.h"
 #include "rgxsysinfo.h"
 #include "physheap.h"
-
 
 typedef struct _SYS_DEVICE_ID_TAG
 {
@@ -86,13 +90,18 @@ typedef struct PVRSRV_DATA_TAG
 	IMG_UINT32					ui32GEOConsecutiveTimeouts;	/*!< OS Global Event Object Timeouts */
 	
 	PVRSRV_CACHE_OP				uiCacheOp;					/*!< Pending cache operations in the system */
-	PRESMAN_DEFER_CONTEXT		hResManDeferContext;		/*!< Device driver global defer resman context */
+	PRESMAN_DEFER_CONTEXTS_LIST	hResManDeferContext;		/*!< Device driver global deferred resman contexts list */
 
 	IMG_HANDLE					hCleanupThread;				/*!< Cleanup thread */
 	IMG_HANDLE					hCleanupEventObject;		/*!< Event object to drive cleanup thread */
 
 	IMG_HANDLE					hDevicesWatchdogThread;		/*!< Devices Watchdog thread */
 	IMG_HANDLE					hDevicesWatchdogEvObj;		/*! Event object to drive devices watchdog thread */
+	volatile IMG_UINT32			ui32DevicesWatchdogPwrTrans;/*! Number of off -> on power state transitions */
+	volatile IMG_UINT32			ui32DevicesWatchdogTimeout; /*! Timeout for the Devices Watchdog Thread */
+#ifdef PVR_TESTING_UTILS
+	volatile IMG_UINT32			ui32DevicesWdWakeupCounter;	/* Need this for the unit tests. */
+#endif
 
 	IMG_BOOL					bUnload;					/*!< Driver unload is in progress */
 } PVRSRV_DATA;
@@ -128,6 +137,40 @@ typedef struct PVRSRV_DBGREQ_NOTIFY_TAG
 } PVRSRV_DBGREQ_NOTIFY;
 
 /*!
+*******************************************************************************
+
+ @Description
+
+ Macro used within debug dump functions to send output either to PVR_LOG or
+ a custom function.
+
+******************************************************************************/
+#define PVR_DUMPDEBUG_LOG(x)					\
+	do											\
+	{											\
+		if (pfnDumpDebugPrintf)					\
+		{										\
+			pfnDumpDebugPrintf x;				\
+		}										\
+		else									\
+		{										\
+			PVR_LOG(x);							\
+		}										\
+	} while(0)
+
+/*!
+*******************************************************************************
+
+ @Description
+
+ Typedef for custom debug dump output functions.
+
+******************************************************************************/
+typedef void (DUMPDEBUG_PRINTF_FUNC)(const IMG_CHAR *pszFormat, ...);
+
+extern DUMPDEBUG_PRINTF_FUNC *g_pfnDumpDebugPrintf;
+
+/*!
 ******************************************************************************
 
  @Function	PVRSRVGetPVRSRVData
@@ -141,7 +184,9 @@ PVRSRV_DATA *PVRSRVGetPVRSRVData(IMG_VOID);
 
 IMG_EXPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVEnumerateDevicesKM(IMG_UINT32 *pui32NumDevices,
-											 	   PVRSRV_DEVICE_IDENTIFIER *psDevIdList);
+                                                   PVRSRV_DEVICE_TYPE *peDeviceType,
+                                                   PVRSRV_DEVICE_CLASS *peDeviceClass,
+                                                   IMG_UINT32 *pui32DeviceIndex);
 
 IMG_EXPORT
 PVRSRV_ERROR IMG_CALLCONV PVRSRVAcquireDeviceDataKM (IMG_UINT32			ui32DevIndex,
@@ -213,8 +258,13 @@ IMG_IMPORT PVRSRV_ERROR IMG_CALLCONV PVRSRVWaitForValueKM(volatile IMG_UINT32	*p
  @Function	: PVRSRVSystemDebugInfo
 
  @Description	: Dump the system debug info
+
+@Input pfnDumpDebugPrintf : Used to specify the appropriate printf function.
+			     If this argument is IMG_NULL, then PVR_LOG() will
+			     be used as the default printing function.
+
 *****************************************************************************/
-PVRSRV_ERROR PVRSRVSystemDebugInfo(IMG_VOID);
+PVRSRV_ERROR PVRSRVSystemDebugInfo(DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf);
 
 /*!
 *****************************************************************************
@@ -330,12 +380,17 @@ PVRSRV_ERROR PVRSRVUnregisterCmdCompleteNotify(IMG_HANDLE hNotify);
  @Function	: PVRSRVDebugRequest
 
  @Description	: Notify any registered debug request handler that a debug
-                  request has been made and at what level.
+                  request has been made and at what level. It dumps information 
+		  for all debug handlers unlike RGXDumpDebugInfo
 
  @Input ui32VerbLevel	: The maximum verbosity level to dump
 
+ @Input pfnDumpDebugPrintf : Used to specify the appropriate printf function.
+			     If this argument is IMG_NULL, then PVR_LOG() will
+			     be used as the default printing function.
+
 *****************************************************************************/
-IMG_VOID IMG_CALLCONV PVRSRVDebugRequest(IMG_UINT32 ui32VerbLevel);
+IMG_VOID IMG_CALLCONV PVRSRVDebugRequest(IMG_UINT32 ui32VerbLevel, DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf);
 
 /*!
 *****************************************************************************

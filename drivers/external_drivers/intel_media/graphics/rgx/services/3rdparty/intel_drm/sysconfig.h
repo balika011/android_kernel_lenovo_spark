@@ -70,8 +70,11 @@ static RGX_TIMING_INFORMATION sRGXTimingInfo =
 {
 	.ui32CoreClockSpeed		= RGX_CORE_CLOCK_SPEED_DEFAULT,
 	.bEnableActivePM		= IMG_TRUE,
+#ifdef CONFIG_MOOREFIELD
+	.bEnableRDPowIsland		= IMG_TRUE,
+#else
 	.bEnableRDPowIsland		= IMG_FALSE,
-
+#endif
 	/* ui32ActivePMLatencyms */
 	.ui32ActivePMLatencyms		= RGX_APM_LATENCY_DEFAULT
 };
@@ -92,7 +95,6 @@ static PVRSRV_DEVICE_CONFIG sDevices[] =
 		.sRegsCpuPBase          = { 0 },
 		.ui32RegsSize           = 0,
 		.ui32IRQ                = 0,
-		.bIRQIsShared           = IMG_TRUE,
 
 		/* No power management on no HW system */
 		.pfnPrePowerState       = SysDevicePrePowerState,

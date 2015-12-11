@@ -354,22 +354,22 @@ static int bq24192_write_reg(struct i2c_client *client, u8 reg, u8 value)
 			break;
 	}
 
-	
-	if((reg == 1 ) &&(value &0x10))
+	if(reg == 1 && value & 0x10)
 	{
-		while(! ( (ret =i2c_smbus_read_byte_data(client, reg))&0x10 )  && rewrite)
+		while(!((ret = i2c_smbus_read_byte_data(client, reg)) & 0x10) && rewrite)
 		{	
-				rewrite--;
-					printk(KERN_ERR" rewrite reg%d  = 0x%x,  rewrite time =%d \n",reg, ret, 3-rewrite);
-				for (i = 0; i < NR_RETRY_CNT; i++) {
+			rewrite--;
+			printk(KERN_ERR" rewrite reg%d  = 0x%x,  rewrite time =%d \n",reg, ret, 3-rewrite);
+			for (i = 0; i < NR_RETRY_CNT; i++) {
 				ret = i2c_smbus_write_byte_data(client, reg, value);
 				if (ret == -EAGAIN || ret == -ETIMEDOUT)
 					continue;
 				else
 					break;
-				}
-                }
+			}
+		}
 	}
+
 	if (ret < 0)
 		dev_err(&client->dev, "I2C SMbus Write error:%d\n", ret);
 
@@ -390,8 +390,6 @@ static int bq24192_read_reg(struct i2c_client *client, u8 reg)
 
 	if (ret < 0)
 		dev_err(&client->dev, "I2C SMbus Read error:%d\n", ret);
-
-
 
 	return ret;
 }
@@ -716,7 +714,7 @@ int bq24192_get_battery_health(void)
 
 	/* convert voltage into millivolts */
 	vnow /= 1000;
-//	dev_warn(&chip->client->dev, "vnow = %d\n", vnow);
+	dev_warn(&chip->client->dev, "vnow = %d\n", vnow);
 
 	if (vnow > chip->max_cv)
 		return POWER_SUPPLY_HEALTH_OVERVOLTAGE;
@@ -739,7 +737,7 @@ static u8 chrg_ilim_to_reg(struct bq24192_chip *chip,int ilim)
 	reg = bq24192_read_reg(chip->client, BQ24192_INPUT_SRC_CNTL_REG);
 
 	/* add by yxf0508 for the following code logic error   */
-	reg&=0xF8;
+	reg &= 0xF8;
 
 	/* Set the input source current limit
 	 * between 100 to 1500mA */
@@ -862,7 +860,6 @@ static int program_timers(struct bq24192_chip *chip, int wdt_duration,
 				bool sfttmr_enable)
 {
 	int ret;
-	
 
 	/* Read the timer control register */
 	ret = bq24192_read_reg(chip->client, BQ24192_CHRG_TIMER_EXP_CNTL_REG);
@@ -885,8 +882,6 @@ static int program_timers(struct bq24192_chip *chip, int wdt_duration,
 	ret = bq24192_write_reg(chip->client,
 				BQ24192_CHRG_TIMER_EXP_CNTL_REG,
 				ret);
-	
-	
 	if (ret < 0)
 		dev_warn(&chip->client->dev, "TIMER CTRL I2C write failed\n");
 
@@ -1170,7 +1165,7 @@ static inline int bq24192_enable_charging(
 	 * would make sure that we program the last set inlmt into the register
 	 * in case for some reasons WDT expires
 	 */
-	regval = chrg_ilim_to_reg(chip,chip->inlmt);
+	regval = chrg_ilim_to_reg(chip, chip->inlmt);
 
 	ret = bq24192_reg_read_modify(chip->client, BQ24192_INPUT_SRC_CNTL_REG,
 				regval, true);
@@ -1219,19 +1214,19 @@ static inline int bq24192_enable_charging(
 			cancel_delayed_work_sync(&chip->chrg_full_wrkr);
 		
 
-		/* Read the status to know about input supply */
-		ret = bq24192_read_reg(chip->client, BQ24192_SYSTEM_STAT_REG);
-		if (ret < 0) {
-			dev_warn(&chip->client->dev,
-				"read reg failed %s\n", __func__);
-		}
+			/* Read the status to know about input supply */
+			ret = bq24192_read_reg(chip->client, BQ24192_SYSTEM_STAT_REG);
+			if (ret < 0) {
+				dev_warn(&chip->client->dev,
+					"read reg failed %s\n", __func__);
+			}
 
-		/* If no charger connected, cancel the workers */
-		if (!(ret & SYSTEM_STAT_VBUS_OTG)) {
-			dev_info(&chip->client->dev, "NO charger connected\n");
-			chip->sfttmr_expired = false;
-			cancel_delayed_work_sync(&chip->chrg_task_wrkr);
-		}
+			/* If no charger connected, cancel the workers */
+			if (!(ret & SYSTEM_STAT_VBUS_OTG)) {
+				dev_info(&chip->client->dev, "NO charger connected\n");
+				chip->sfttmr_expired = false;
+				cancel_delayed_work_sync(&chip->chrg_task_wrkr);
+			}
 		}
 	}
 
@@ -1315,7 +1310,7 @@ static inline int bq24192_set_inlmt(struct bq24192_chip *chip, int inlmt)
 
 	dev_warn(&chip->client->dev, "%s:%d %d\n", __func__, __LINE__, inlmt);
 	chip->inlmt = inlmt;
-	regval = chrg_ilim_to_reg(chip,inlmt);
+	regval = chrg_ilim_to_reg(chip, inlmt);
 
 	return bq24192_write_reg(chip->client, BQ24192_INPUT_SRC_CNTL_REG,
 				regval);
@@ -1365,8 +1360,7 @@ static enum bq24192_chrgr_stat bq24192_is_charging(struct bq24192_chip *chip)
 }
 static enum bq24192_chrgr_stat charger_is_present(struct bq24192_chip *chip)
 {
-	int ret;
-	ret = bq24192_read_reg(chip->client, BQ24192_SYSTEM_STAT_REG);
+	int ret = bq24192_read_reg(chip->client, BQ24192_SYSTEM_STAT_REG);
 	if (ret < 0)
 		dev_err(&chip->client->dev, "STATUS register read failed\n");
 
@@ -1607,13 +1601,12 @@ static irqreturn_t bq24192_irq_thread(int irq, void *devid)
 	if (reg_status < 0)
 		dev_err(&chip->client->dev, "STATUS register read failed:\n");
 
-//	dev_info(&chip->client->dev, "STATUS reg %x\n", reg_status);
+	dev_info(&chip->client->dev, "STATUS reg %x\n", reg_status);
 
 	reg_status &= SYSTEM_STAT_CHRG_DONE;
 
 	if (reg_status == SYSTEM_STAT_CHRG_DONE) {
 		dev_warn(&chip->client->dev, "HW termination happened\n");
-//		bq24192_enable_hw_term(chip, false);
 		bq24192_resume_charging(chip);
 		/* schedule the thread to let the framework know about FULL */
 		schedule_delayed_work(&chip->chrg_full_wrkr, 0);
@@ -1629,7 +1622,7 @@ static irqreturn_t bq24192_irq_thread(int irq, void *devid)
 	if (reg_fault < 0)
 		dev_err(&chip->client->dev, "FAULT register read failed:\n");
 
-	dev_info(&chip->client->dev, "STATUS reg %x,FAULT reg %x\n",reg_status, reg_fault);
+	dev_info(&chip->client->dev, "FAULT reg %x\n", reg_fault);
 	if (reg_fault & FAULT_STAT_WDT_TMR_EXP) {
 		dev_warn(&chip->client->dev, "WDT expiration fault\n");
 		if (chip->is_charging_enabled) {
@@ -1691,8 +1684,7 @@ static void bq24192_task_worker(struct work_struct *work)
 	}
 
 	/* convert voltage into millivolts */
-	//vbatt /= 1000;
-	dev_warn(&chip->client->dev, "vbatt  %d\n", vbatt);
+	dev_warn(&chip->client->dev, "vbatt = %d\n", vbatt);
 
 	/* If vbatt <= 3600mV, leave the VINDPM settings to default */
 	if (vbatt <= INPUT_SRC_LOW_VBAT_LIMIT)
@@ -1845,7 +1837,7 @@ int bq24192_slave_mode_enable_charging(int volt, int cur, int ilim)
 	struct bq24192_chip *chip = i2c_get_clientdata(bq24192_client);
 	int ret;
 
-	chip->inlmt = chrg_ilim_to_reg(chip,ilim);
+	chip->inlmt = chrg_ilim_to_reg(chip, ilim);
 	if (chip->inlmt)
 		bq24192_set_inlmt(chip, chip->inlmt);
 	chip->cc = chrg_cur_to_reg(cur);
@@ -1926,22 +1918,14 @@ static ssize_t charger_get_present(struct device *dev,
 		char *buf)
 {
 	struct bq24192_chip *chip = dev_get_drvdata(dev);
-	 char present[] = "1";
-	 char nopresent[] = "0";
-	char *status;
 	enum bq24192_chrgr_stat charging;
 
-	charging =charger_is_present(chip);
-	if(charging == 1)
-		status = present;
-	else
-		status = nopresent;
+	charging = charger_is_present(chip);
 
-	return sprintf(buf, "%s\n", status);
+	return sprintf(buf, "%d\n", charging);
 }
 static DEVICE_ATTR(charger_present, S_IROTH | S_IRUSR | S_IRGRP, charger_get_present,
 		NULL);
-
 
 static ssize_t show_charging_attrs(struct device *dev,
 		struct device_attribute *attr,
@@ -2014,13 +1998,13 @@ static struct attribute_group battery_attr_group = {
 /* 
 this function is called by bq27441
 */
-static struct  bq24192_chip *save_chip=NULL;
+static struct bq24192_chip *save_chip = NULL;
 int battery_is_charging()
 {
 	enum bq24192_chrgr_stat charging;
 	if(!save_chip)
 		return  0;
-	charging =bq24192_is_charging(save_chip);
+	charging = bq24192_is_charging(save_chip);
 	if(charging == BQ24192_CHRGR_STAT_CHARGING)
 		return 1;
 
@@ -2038,11 +2022,8 @@ static int bq24192_probe(struct i2c_client *client,
 	int ret, gpio;
 
 	lnw_gpio_set_alt(148, 1);
-	//gpio_request(148,"USB_EN");
-	//ret = gpio_direction_output(148,0);
 	gpio_request(55,"USB_EN");
 	ret = gpio_direction_output(55,0);
-
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(&client->dev,
@@ -2184,6 +2165,7 @@ static int bq24192_probe(struct i2c_client *client,
 
 	ret = sysfs_create_group(&chip->client->dev.kobj, &battery_attr_group);
 	dev_set_drvdata(&chip->client->dev, chip);
+
 	/* create debugfs for maxim registers */
 	ret = bq24192_create_debugfs(chip);
 	if (ret < 0) {
@@ -2212,7 +2194,9 @@ static int bq24192_probe(struct i2c_client *client,
 				"IPC Failed with %d error\n", ret);
 	}
 #endif
-		save_chip = chip;
+
+	save_chip = chip;
+
 	return 0;
 }
 
@@ -2281,11 +2265,11 @@ static int bq24192_resume(struct device *dev)
 	dev_dbg(&chip->client->dev, "bq24192 resume\n");
 	return 0;
 }
-/*add by yxf for insure that the phone can charge if reboot*/
+
 void  bq24192_shutdown(struct i2c_client  *client)
 {
 	printk(KERN_ERR" %s called \n",__func__);
-	bq24192_write_reg(client,BQ24192_POWER_ON_CFG_REG,POWER_ON_CFG_RESET);
+	bq24192_write_reg(client, BQ24192_POWER_ON_CFG_REG, POWER_ON_CFG_RESET);
 }
 #else
 #define bq24192_suspend NULL

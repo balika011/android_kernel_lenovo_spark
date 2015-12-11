@@ -220,7 +220,7 @@ static int lp855x_configure(struct lp855x *lp)
 	val = pd->device_control;
 	
 	/*enable the ic to detect how many led strings been connected to the lp8557*/
-	val|= LP8557_AOTO_LED_STRINGS;
+	val |= LP8557_AOTO_LED_STRINGS;
 	
 	ret = lp855x_write_byte(lp, lp->cfg->reg_devicectrl, val);
 	if (ret)

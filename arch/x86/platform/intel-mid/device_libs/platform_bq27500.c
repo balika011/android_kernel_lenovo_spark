@@ -91,7 +91,6 @@ static int __init bq27541_platform_init(void)
 
 	printk("<AXS> %s: fuegauge interrupt gpio = %d\n", __func__, soc_int_gpio);
 
-	/*add by yxf 0525  */
 	if(soc_int_gpio !=  -ENODEV)
 	{
 		printk("<AXS> %s:gpio is OK fuegauge interrupt gpio = %d\n", __func__, soc_int_gpio);

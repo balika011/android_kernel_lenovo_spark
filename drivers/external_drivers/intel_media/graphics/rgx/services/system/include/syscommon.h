@@ -54,16 +54,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #if defined (__cplusplus)
 extern "C" {
 #endif
+#include "pvrsrv.h"
 
 PVRSRV_ERROR SysCreateConfigData(PVRSRV_SYSTEM_CONFIG **ppsSysConfig);
 IMG_VOID SysDestroyConfigData(PVRSRV_SYSTEM_CONFIG *psSysConfig);
 PVRSRV_ERROR SysAcquireSystemData(IMG_HANDLE hSysData);
 PVRSRV_ERROR SysReleaseSystemData(IMG_HANDLE hSysData);
-PVRSRV_ERROR SysDebugInfo(PVRSRV_SYSTEM_CONFIG *psSysConfig);
+PVRSRV_ERROR SysDebugInfo(PVRSRV_SYSTEM_CONFIG *psSysConfig, DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf);
 
 #if defined(SUPPORT_SYSTEM_INTERRUPT_HANDLING)
 PVRSRV_ERROR SysInstallDeviceLISR(IMG_UINT32 ui32IRQ,
-				  IMG_BOOL bShared,
 				  IMG_CHAR *pszName,
 				  PFN_LISR pfnLISR,
 				  IMG_PVOID pvData,

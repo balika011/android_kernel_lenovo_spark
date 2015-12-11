@@ -64,11 +64,10 @@ static struct synaptics_dsx_cap_button_map cap_button_map = {
 	.map = cap_button_codes,
 };
 
-//static struct synaptics_dsx_board_data dsx_board_data = {
 static struct synaptics_dsx_platform_data dsx_board_data = {
 	.irq_gpio = DSX_ATTN_GPIO,
 	//.irq_flags = DSX_IRQ_FLAGS,
-	.irq_type = IRQF_ONESHOT | IRQ_TYPE_LEVEL_LOW,    
+	.irq_type = IRQF_ONESHOT | IRQ_TYPE_LEVEL_LOW,
 	.power_gpio = DSX_POWER_GPIO,
 	.power_on_state = DSX_POWER_ON_STATE,
 	.power_delay_ms = DSX_POWER_DELAY_MS,
@@ -108,7 +107,7 @@ void *s7805_platform_data(void *info)
 
 }
 
-#elif (SYNAPTICS_MODULE == TM1940)    // #if (SYNAPTICS_MODULE == TM2448)
+#elif (SYNAPTICS_MODULE == TM1940)
 #define DSX_I2C_ADDR 0x20
 #define DSX_ATTN_GPIO 39
 #define DSX_ATTN_MUX_NAME "gpmc_ad15.gpio_39"
@@ -187,9 +186,9 @@ static int synaptics_gpio_setup(int gpio, bool configure, int dir, int state)
 					__func__, gpio, retval);
 			return retval;
 		}
-			
+
 		gpio_export(gpio,1);
-		
+
 		if (dir == 0)
 			retval = gpio_direction_input(gpio);
 		else

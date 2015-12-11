@@ -22,13 +22,13 @@
 static struct i2c_board_info __initdata lp8556_i2c_device = {
 	I2C_BOARD_INFO("lp8556", 0x2C),
 };
-//yxw add for lcd
+
 static struct i2c_board_info __initdata lp8557_i2c_device = {
 	I2C_BOARD_INFO("lp8557", 0x2C),
 };
 
 struct lp855x_platform_data platform_data = {
-	.name = "lp8557",//.name = "lp8556",//yxw change for lcd
+	.name = "lp8557",
 	.device_control = 0,
 	.initial_brightness = 0,
 	.period_ns = 5000000, /* 200 Hz */
@@ -45,10 +45,9 @@ void *lp8556_get_platform_data(void)
 static int __init platform_display_module_init(void)
 {
 
-	//lp8556_i2c_device.platform_data = lp8556_get_platform_data();
-	lp8557_i2c_device.platform_data = lp8556_get_platform_data();//yxw add for lcd
+	lp8557_i2c_device.platform_data = lp8556_get_platform_data();
 
-	if (lp8557_i2c_device.platform_data == NULL) {//if (lp8556_i2c_device.platform_data == NULL) {
+	if (lp8557_i2c_device.platform_data == NULL) {
 		pr_debug("failed to get platform data for lp8556.");
 		return -EINVAL;
 	}
@@ -57,7 +56,7 @@ static int __init platform_display_module_init(void)
 			INTEL_MID_BOARD(3, TABLET, BYT, BLK, ENG, 8PR0) ||
 			INTEL_MID_BOARD(3, TABLET, BYT, BLK, PRO, 8PR1) ||
 			INTEL_MID_BOARD(3, TABLET, BYT, BLK, ENG, 8PR1))
-		return i2c_register_board_info(3, &lp8557_i2c_device, 1);//return i2c_register_board_info(3, &lp8556_i2c_device, 1);
+		return i2c_register_board_info(3, &lp8557_i2c_device, 1);
 
 	return -EPERM;
 }

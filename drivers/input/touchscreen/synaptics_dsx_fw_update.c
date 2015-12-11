@@ -27,7 +27,6 @@
 #include <linux/input/synaptics_dsx.h>
 #include "synaptics_dsx_i2c.h"
 
-//#define FW_IMAGE_NAME "synaptics/startup_fw_update.img"
 #define FW_IMAGE_NAME "startup_fw_update.img"
 #define FW_IMAGE_GIS_NAME "Lenovo_Spark_PVT_064A000D_20140707.img"  //wqf add for GIS tp  
 #define FW_IMAGE_LAIBAO_NAME "Lenovo_Spark_064A0004_20140731.img" //wqf add for laibao tp
@@ -1304,14 +1303,14 @@ static int fwu_do_lockdown(void)
 static int fwu_start_reflash(void)
 {
 	int retval = 0;
-	int ret=0;
-	unsigned char moduleid;
 	enum flash_area flash_area;
 	unsigned short f01_cmd_base_addr;
 	struct image_header_data header;
 	struct f01_device_status f01_device_status;
 	const unsigned char *fw_image;
 	const struct firmware *fw_entry = NULL;
+	int ret;
+	unsigned char moduleid;
 
 	if (fwu->rmi4_data->sensor_sleep) {
 		dev_err(&fwu->rmi4_data->i2c_client->dev,
@@ -1327,31 +1326,28 @@ static int fwu_start_reflash(void)
 	if (fwu->ext_data_source) {
 		fw_image = fwu->ext_data_source;
 	} else {
-		ret = fwu->fn_ptr->read(fwu->rmi4_data,
-		0x00A4,
-		&moduleid,
-		1);
-		if (ret<0){
-			printk("wqf read module id error\n");
+		ret = fwu->fn_ptr->read(fwu->rmi4_data,	0x00A4, &moduleid, 1);
+		if (ret < 0)
+		{
+			dev_err(&fwu->rmi4_data->i2c_client->dev,
+					"%s: Failed to read module id\n",
+					__func__);
 			return ret;
 		}
-		printk("wqf moduleid=%02x\n",moduleid);
-		if (moduleid==FW_GIS_ID){
-			strncpy(fwu->image_name, FW_IMAGE_GIS_NAME, MAX_IMAGE_NAME_LEN);
-		}
-		else if (moduleid==FW_LAIBAO_ID){
-			strncpy(fwu->image_name, FW_IMAGE_LAIBAO_NAME, MAX_IMAGE_NAME_LEN);
-		}
-		else{
-			strncpy(fwu->image_name, FW_IMAGE_NAME, MAX_IMAGE_NAME_LEN);
-		}
-			
 
+		dev_info(&fwu->rmi4_data->i2c_client->dev,
+			"%s: moduleid = %02x\n",
+			__func__, moduleid);
+
+		if (moduleid == FW_GIS_ID)
+			strncpy(fwu->image_name, FW_IMAGE_GIS_NAME, MAX_IMAGE_NAME_LEN);
+		else if (moduleid == FW_LAIBAO_ID)
+			strncpy(fwu->image_name, FW_IMAGE_LAIBAO_NAME, MAX_IMAGE_NAME_LEN);
+		else
+			strncpy(fwu->image_name, FW_IMAGE_NAME, MAX_IMAGE_NAME_LEN);
 			
 		dev_dbg(&fwu->rmi4_data->i2c_client->dev,
 				"%s: Requesting firmware image %s\n",
-				__func__, fwu->image_name);
-		printk("%s: Requesting firmware image %s\n",
 				__func__, fwu->image_name);
 
 		retval = request_firmware(&fw_entry, fwu->image_name,

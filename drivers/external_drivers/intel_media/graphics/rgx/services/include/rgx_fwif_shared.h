@@ -54,8 +54,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  ******************************************************************************
  * Device state flags
  *****************************************************************************/
-#define RGXKMIF_DEVICE_STATE_ZERO_FREELIST		(0x1 << 0)		/*!< Zeroing the physical pages of reconstructed free lists */
-#define RGXKMIF_DEVICE_STATE_FTRACE_EN			(0x1 << 1)		/*!< Used to enable device FTrace thread to consume HWPerf data */
+#define RGXKMIF_DEVICE_STATE_ZERO_FREELIST			(0x1 << 0)		/*!< Zeroing the physical pages of reconstructed free lists */
+#define RGXKMIF_DEVICE_STATE_FTRACE_EN				(0x1 << 1)		/*!< Used to enable device FTrace thread to consume HWPerf data */
+#define RGXKMIF_DEVICE_STATE_DISABLE_DW_LOGGING_EN	(0x1 << 2)		/*!< Used to disable the Devices Watchdog logging */
 
 
 /*!
@@ -78,11 +79,33 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
    the host and meta that contains 64-bit vars has to maintain this aligment)*/
 #define RGXFWIF_FWALLOC_ALIGN	sizeof(IMG_UINT64)
 
+/*!
+ ******************************************************************************
+ * Force structure 8-byte alignment
+ * This option was introduced to fix the ARM64 misalignment issue when accessing
+ * uncached memory.
+ *****************************************************************************/
+#if defined(FORCE_UNCACHED_ALIGN)
+#define UNCACHED_ALIGN      RGXFW_ALIGN
+#else
+#define UNCACHED_ALIGN
+#endif
+
 typedef struct _RGXFWIF_DEV_VIRTADDR_
 {
 	IMG_UINT32	ui32Addr;
 } RGXFWIF_DEV_VIRTADDR;
 
+typedef struct _RGXFWIF_DMA_ADDR_
+{
+	IMG_DEV_VIRTADDR        RGXFW_ALIGN psDevVirtAddr;
+
+#if defined(RGX_FIRMWARE)
+	IMG_PBYTE               pbyFWAddr;
+#else
+	RGXFWIF_DEV_VIRTADDR    pbyFWAddr;
+#endif
+} RGXFWIF_DMA_ADDR;
 
 typedef IMG_UINT8	RGXFWIF_CCCB;
 
@@ -95,6 +118,7 @@ typedef struct _RGXFWIF_HWRTDATA_		*PRGXFWIF_HWRTDATA;
 typedef struct _RGXFWIF_FREELIST_		*PRGXFWIF_FREELIST;
 typedef struct _RGXFWIF_RTA_CTL_		*PRGXFWIF_RTA_CTL;
 typedef IMG_UINT32						*PRGXFWIF_UFO_ADDR;
+typedef IMG_UINT64                  *PRGXFWIF_TIMESTAMP_ADDR;
 typedef struct _RGXFWIF_CLEANUP_CTL_		*PRGXFWIF_CLEANUP_CTL;
 #else
 /* Compiling the host driver - use a firmware device virtual pointer */
@@ -105,11 +129,12 @@ typedef RGXFWIF_DEV_VIRTADDR	PRGXFWIF_HWRTDATA;
 typedef RGXFWIF_DEV_VIRTADDR	PRGXFWIF_FREELIST;
 typedef RGXFWIF_DEV_VIRTADDR	PRGXFWIF_RTA_CTL;
 typedef RGXFWIF_DEV_VIRTADDR	PRGXFWIF_UFO_ADDR;
+typedef RGXFWIF_DEV_VIRTADDR  PRGXFWIF_TIMESTAMP_ADDR;
 typedef RGXFWIF_DEV_VIRTADDR	PRGXFWIF_CLEANUP_CTL;
 #endif /* RGX_FIRMWARE */
 
 
-/* FIXME PRGXFWIF_UFO_ADDR and RGXFWIF_UFO should move back into rgx_fwif_client.h */
+
 typedef struct _RGXFWIF_UFO_
 {
 	PRGXFWIF_UFO_ADDR	puiAddrUFO;
@@ -172,14 +197,11 @@ typedef enum
 {
 	RGXFW_LOCAL_FREELIST = 0,
 	RGXFW_GLOBAL_FREELIST = 1,
-	RGXFW_MMU_FREELIST = 2,
-} RGXFW_FREELIST_TYPE;
-
 #if defined(SUPPORT_MMU_FREELIST)
-#define RGXFW_MAX_FREELISTS		(3)
-#else
-#define RGXFW_MAX_FREELISTS		(2)
+	RGXFW_MMU_FREELIST = 2,
 #endif
+	RGXFW_MAX_FREELISTS
+} RGXFW_FREELIST_TYPE;
 
 typedef struct _RGXFWIF_RTA_CTL_
 {
@@ -317,7 +339,7 @@ typedef struct _RGXFWIF_COMPCHECKS_BVNC_
 	IMG_UINT32  ui32VLenMax;
 	IMG_UINT32	ui32BNC;
 	IMG_CHAR	aszV[RGXFWIF_COMPCHECKS_BVNC_V_LEN_MAX + 1];
-} RGXFWIF_COMPCHECKS_BVNC;
+} UNCACHED_ALIGN RGXFWIF_COMPCHECKS_BVNC;
 
 #define RGXFWIF_COMPCHECKS_BVNC_DECLARE_AND_INIT(name) RGXFWIF_COMPCHECKS_BVNC name = { RGXFWIF_COMPCHECKS_LAYOUT_VERSION, RGXFWIF_COMPCHECKS_BVNC_V_LEN_MAX }
 #define RGXFWIF_COMPCHECKS_BVNC_INIT(name) do { (name).ui32LayoutVersion = RGXFWIF_COMPCHECKS_LAYOUT_VERSION; \
@@ -332,7 +354,7 @@ typedef struct _RGXFWIF_COMPCHECKS_
 	IMG_UINT32					ui32DDKBuild;		/*!< software DDK build no. */
 	IMG_UINT32					ui32BuildOptions;	/*!< build options bit-field */
 	IMG_BOOL					bUpdated;			/*!< Information is valid */
-} RGXFWIF_COMPCHECKS;
+} UNCACHED_ALIGN RGXFWIF_COMPCHECKS;
 
 
 #define GET_CCB_SPACE(WOff, ROff, CCBSize) \
@@ -365,13 +387,20 @@ typedef enum _RGXFWIF_CCB_CMD_TYPE_
 	RGXFWIF_CCB_CMD_TYPE_NULL		= 207 | RGX_CCB_TYPE_TASK,
 	RGXFWIF_CCB_CMD_TYPE_SHG		= 208 | RGX_CCB_TYPE_TASK,
 	RGXFWIF_CCB_CMD_TYPE_RTU		= 209 | RGX_CCB_TYPE_TASK,
-	RGXFWIF_CCB_CMD_TYPE_RTU_FC		= 210 | RGX_CCB_TYPE_TASK,
+	RGXFWIF_CCB_CMD_TYPE_RTU_FC		  = 210 | RGX_CCB_TYPE_TASK,
+	RGXFWIF_CCB_CMD_TYPE_PRE_TIMESTAMP = 211 | RGX_CCB_TYPE_TASK,
 
 /* Leave a gap between CCB specific commands and generic commands */
-	RGXFWIF_CCB_CMD_TYPE_FENCE		= 211,
-	RGXFWIF_CCB_CMD_TYPE_UPDATE		= 212,
-	RGXFWIF_CCB_CMD_TYPE_FENCE_PR		= 213,
-	RGXFWIF_CCB_CMD_TYPE_PRIORITY		= 214,
+	RGXFWIF_CCB_CMD_TYPE_FENCE          = 212,
+	RGXFWIF_CCB_CMD_TYPE_UPDATE         = 213,
+	RGXFWIF_CCB_CMD_TYPE_RMW_UPDATE     = 214,
+	RGXFWIF_CCB_CMD_TYPE_FENCE_PR       = 215,
+	RGXFWIF_CCB_CMD_TYPE_PRIORITY       = 216,
+/* Pre and Post timestamp commands are supposed to sandwich the DM cmd. The
+   padding code with the CCB wrap upsets the FW if we don't have the task type
+   bit cleared for POST_TIMESTAMPs. That's why we have 2 different cmd types.
+*/
+	RGXFWIF_CCB_CMD_TYPE_POST_TIMESTAMP = 217,
 	
 	RGXFWIF_CCB_CMD_TYPE_PADDING	= 220,
 } RGXFWIF_CCB_CMD_TYPE;
@@ -394,6 +423,14 @@ typedef struct _RGXFWIF_REG_CFG_REC_
 	IMG_UINT64		ui64Addr;
 	IMG_UINT64		ui64Value;
 } RGXFWIF_REG_CFG_REC;
+
+
+typedef struct _RGXFWIF_TIME_CORR_
+{
+	IMG_UINT64 RGXFW_ALIGN 	ui64OSTimeStamp;
+	IMG_UINT64 RGXFW_ALIGN 	ui64CRTimeStamp;
+	IMG_UINT32				ui32DVFSClock;
+} RGXFWIF_TIME_CORR;
 
 #endif /*  __RGX_FWIF_SHARED_H__ */
 

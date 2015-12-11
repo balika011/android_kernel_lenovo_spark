@@ -46,6 +46,7 @@ ccflags-y += \
 	-I$(RGXINC)/generated/rgxhwperf_bridge \
 	-I$(RGXINC)/generated/regconfig_bridge \
 	-I$(RGXINC)/generated/ri_bridge \
+	-I$(RGXINC)/generated/timerquery_bridge \
 	-I$(RGXINC)/tools/intern/debug/include \
 	-I$(RGXINC)/tools/intern/debug/dbgdriv/common \
 	-I$(RGXINC)/hwdefs \
@@ -63,6 +64,7 @@ ccflags-y += \
 	-I$(RGXINC)/services/server/env/linux \
 	-I$(RGXINC)/services/server/include \
 	-I$(RGXINC)/services/server/devices/rgx \
+	-I$(RGXINC)/kernel/drivers/staging/imgtec \
 	-I$(DISPINC)/interface \
 	-I$(DISPINC)/drv/ospm \
 	-I$(DISPINC)/drv \
@@ -117,10 +119,13 @@ ccflags-y += \
 	-DSUPPORT_GPUTRACE_EVENTS \
 	-DLMA \
 	-DPVR_LINUX_PYSMEM_MAX_POOL_PAGES=10240 \
-	-DPVR_MMAP_USE_VM_INSERT \
 	-DPVR_ANDROID_NATIVE_WINDOW_HAS_SYNC \
 	-DPVRSRV_NEED_PVR_DPF \
 	-DSUPPORT_SYSTEM_INTERRUPT_HANDLING \
+	-DSUPPORT_SHARED_SLC \
+	-DPVR_MMAP_USE_VM_INSERT \
+	-DPVR_LINUX_VMALLOC_ALLOCATION_THRESHOLD=16384 \
+	-DPVRSRV_ENABLE_PROCESS_STATS=1 \
 	$(NULL)
 
 #	-DPVRSRV_ENABLE_FW_TRACE_DEBUGFS \
@@ -212,8 +217,6 @@ $(DRIVER_NAME)-y += \
 	$(RGXDIR)/services/server/env/linux/physmem_osmem_linux.o \
 	$(RGXDIR)/services/server/env/linux/physmem_tdsecbuf_linux.o \
 	$(RGXDIR)/services/server/env/linux/osfunc_x86.o \
-	$(RGXDIR)/services/server/env/linux/mutils.o \
-	$(RGXDIR)/services/server/env/linux/mutex.o \
 	$(RGXDIR)/services/server/env/linux/osfunc.o \
 	$(RGXDIR)/services/server/env/linux/event.o \
 	$(RGXDIR)/services/server/env/linux/pvr_bridge_k.o \
@@ -221,8 +224,6 @@ $(DRIVER_NAME)-y += \
 	$(RGXDIR)/services/server/env/linux/osconnection_server.o \
 	$(RGXDIR)/services/server/env/linux/devicemem_mmap_stub.o \
 	$(RGXDIR)/services/server/env/linux/module.o \
-	$(RGXDIR)/services/server/env/linux/mmap.o \
-	$(RGXDIR)/services/server/env/linux/lock.o \
 	$(RGXDIR)/services/server/env/linux/ossecure_export.o \
 	$(RGXDIR)/services/server/env/linux/pdump.o \
 	$(RGXDIR)/services/server/env/linux/pvr_debugfs.o \
@@ -234,6 +235,7 @@ $(DRIVER_NAME)-y += \
 	$(RGXDIR)/services/shared/common/devicemem_utils.o \
 	$(RGXDIR)/services/shared/common/sync.o \
 	$(RGXDIR)/services/shared/common/ra.o \
+	$(RGXDIR)/services/shared/common/uniq_key_splay_tree.o \
 	$(RGXDIR)/services/shared/devices/rgx/rgx_compat_bvnc.o \
 	$(RGXDIR)/services/server/common/tlintern.o \
 	$(RGXDIR)/services/server/common/tlstream.o \
@@ -245,7 +247,7 @@ $(DRIVER_NAME)-y += \
 
 # WINDOW_HAS_SYNC
 $(DRIVER_NAME)-y += \
-	$(RGXDIR)/services/server/env/linux/pvr_sync.o
+	$(RGXDIR)/kernel/drivers/staging/imgtec/pvr_sync.o
 
 $(DRIVER_NAME)-$(CONFIG_DRM_HANDSET_DEBUG) += \
 	$(RGXDIR)/services/server/common/ri_server.o
@@ -278,6 +280,9 @@ $(DRIVER_NAME)-y += \
 	$(RGXDIR)/services/server/devices/rgx/debugmisc_server.o \
 	$(RGXDIR)/services/server/devices/rgx/rgxmem.o \
 	$(RGXDIR)/services/server/devices/rgx/rgxccb.o \
+	$(RGXDIR)/services/server/devices/rgx/rgxsync.o \
+	$(RGXDIR)/services/server/env/linux/mmap.o \
+	$(RGXDIR)/services/server/devices/rgx/rgxtimerquery.o \
 	$(RGXDIR)/services/server/devices/rgx/rgxdebug.o \
 	$(RGXDIR)/services/server/devices/rgx/rgxbreakpoint.o \
 	$(RGXDIR)/services/server/devices/rgx/rgxhwperf.o
@@ -289,8 +294,8 @@ $(DRIVER_NAME)-y += \
 	$(RGXDIR)/services/3rdparty/intel_devfreq/dfrgx_interface.o
 
 # For Power Monitor
-$(DRIVER_NAME)-y += \
-	$(RGXDIR)/services/server/devices/rgx/rgxpowermon.o
+#$(DRIVER_NAME)-y += \
+#	$(RGXDIR)/services/server/devices/rgx/rgxpowermon.o
 
 $(DRIVER_NAME)-y += \
 	$(RGXDIR)/generated/cmm_bridge/server_cmm_bridge.o \
@@ -315,6 +320,7 @@ $(DRIVER_NAME)-y += \
 	$(RGXDIR)/generated/pvrtl_bridge/server_pvrtl_bridge.o \
 	$(RGXDIR)/generated/rgxhwperf_bridge/server_rgxhwperf_bridge.o \
 	$(RGXDIR)/generated/regconfig_bridge/server_regconfig_bridge.o \
+	$(RGXDIR)/generated/timerquery_bridge/server_timerquery_bridge.o
 
 $(DRIVER_NAME)-$(CONFIG_DRM_HANDSET_DEBUG) += \
 	$(RGXDIR)/generated/dri_bridge/client_ri_bridge.o \
@@ -331,6 +337,7 @@ ccflags-y += \
 ##ifeq ($(SUPPORT_ION),1)
 #merrifield_gfx-y += generated/ion_bridge/server_ion_bridge.o \
 	services/system/common/env/linux/ion_support.o \
+	services/system/common/env/linux/ion_support_generic.o \
 	services/system/common/env/linux/ion_interrupt_support.o \
 	services/system/common/env/linux/ion_lma_heap.o
 ##ifeq ($(SUPPORT_OLD_ION_API),1)
@@ -338,6 +345,9 @@ ccflags-y += \
 ##else
 #merrifield_gfx-y += services/server/env/linux/physmem_ion.o
 ##endif
+#$(DRIVER_NAME)-y += \
+#	$(RGXDIR)/services/server/env/linux/physmem_dmabuf.o \
+#	$(RGXDIR)/generated/dmabuf_bridge/server_dmabuf_bridge.o
 ##endif # SUPPORT_ION
 
 # buffer class video

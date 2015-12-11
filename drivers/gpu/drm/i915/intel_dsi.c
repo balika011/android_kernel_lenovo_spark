@@ -63,14 +63,14 @@ static const struct intel_dsi_device intel_dsi_devices[] = {
 		.name = "auo-b101uan01e-dsi-vid-mode-display",
 		.dev_ops = &auo_b101uan01e_dsi_display_ops,
 	},
-	#if 0	
+#if 0
 	{
 		.panel_id = MIPI_DSI_CPT_NT71410_PANEL_ID,
 		.type = INTEL_DSI_VIDEO_MODE,
 		.name = "cpt-nt71410-dsi-vid-mode-display",
 		.dev_ops = &cpt_nt71410_dsi_display_ops,
 	},
-	#endif
+#endif
 	{
 		.panel_id = MIPI_DSI_CMI_NT51021_PANEL_ID,
 		.type = INTEL_DSI_VIDEO_MODE,
@@ -570,7 +570,7 @@ static void intel_dsi_mode_set(struct intel_encoder *intel_encoder)
 	/* in terms of low power clock */
 	I915_WRITE(MIPI_INIT_COUNT(pipe), intel_dsi->init_count);
 
-	I915_WRITE(MIPI_HIGH_LOW_SWITCH_COUNT(pipe), \
+	I915_WRITE(MIPI_HIGH_LOW_SWITCH_COUNT(pipe),
 					intel_dsi->hs_to_lp_count);
 	I915_WRITE(MIPI_LP_BYTECLK(pipe), intel_dsi->lp_byte_clk);
 
@@ -922,7 +922,6 @@ bool intel_dsi_init(struct drm_device *dev)
 		dev_priv->mipi_panel_id = i915_mipi_panel_id;
 
 	/*enable for blade2 panel*/
-	dev_priv->mipi_panel_id = MIPI_DSI_AUO_B101UAN01E_PANEL_ID;
 	dev_priv->mipi_panel_id = MIPI_DSI_CMI_NT51021_PANEL_ID;
 	for (i = 0; i < ARRAY_SIZE(intel_dsi_devices); i++) {
 		dsi = &intel_dsi_devices[i];

@@ -170,6 +170,4 @@ source "drivers/reset/Kconfig"
 
 source "drivers/external_drivers/Kconfig"
 
-source "drivers/android/Kconfig"
-
 endmenu

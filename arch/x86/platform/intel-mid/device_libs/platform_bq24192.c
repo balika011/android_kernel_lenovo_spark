@@ -718,8 +718,6 @@ static void *platform_byt_get_batt_charge_profile(void)
 	byt_ps_batt_chrg_prof.chrg_prof_type = PSE_MOD_CHRG_PROF;
 #endif	
 
-
-
 	byt_ps_batt_chrg_prof.batt_prof = &byt_batt_chg_profile;
 	battery_prop_changed(POWER_SUPPLY_BATTERY_INSERTED,
 					&byt_ps_batt_chrg_prof);

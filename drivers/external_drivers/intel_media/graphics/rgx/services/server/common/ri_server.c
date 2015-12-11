@@ -317,12 +317,13 @@ IMG_VOID RIDeInitKM(IMG_VOID)
 
 ******************************************************************************/
 PVRSRV_ERROR RIWritePMREntryKM(PMR *hPMR,
-					   	       const IMG_CHAR ai8TextA[RI_MAX_TEXT_LEN+1],
+					   	       IMG_UINT32 ui32TextASize,
+					   	       const IMG_CHAR *psz8TextA,
 					   	       IMG_SIZE_T uiLogicalSize)
 {
 	IMG_UINTPTR_T hashData = 0;
 	PMR			*pPMRHashKey = hPMR;
-	IMG_PCHAR pszText = (IMG_PCHAR)ai8TextA;
+	IMG_PCHAR pszText = (IMG_PCHAR)psz8TextA;
 	RI_LIST_ENTRY *psRIEntry = IMG_NULL;
 
 
@@ -388,11 +389,14 @@ PVRSRV_ERROR RIWritePMREntryKM(PMR *hPMR,
 
 			if (pszText)
 			{
+				if (ui32TextASize > RI_MAX_TEXT_LEN)
+					ui32TextASize = RI_MAX_TEXT_LEN;
+
 				/* copy ai8TextA field data */
-				OSSNPrintf((IMG_CHAR *)psRIEntry->ai8TextA, RI_MAX_TEXT_LEN, "%s", pszText);
+				OSSNPrintf((IMG_CHAR *)psRIEntry->ai8TextA, ui32TextASize+1, "%s", pszText);
 
 				/* ensure string is NUL-terminated */
-				psRIEntry->ai8TextA[RI_MAX_TEXT_LEN] = '\0';
+				psRIEntry->ai8TextA[ui32TextASize] = '\0';
 			}
 			else
 			{
@@ -436,7 +440,8 @@ PVRSRV_ERROR RIWritePMREntryKM(PMR *hPMR,
 
 ******************************************************************************/
 PVRSRV_ERROR RIWriteMEMDESCEntryKM(PMR *hPMR,
-					   	   	   	   const IMG_CHAR ai8TextB[RI_MAX_TEXT_LEN+1],
+					   	   	   	   IMG_UINT32 ui32TextBSize,
+					   	   	   	   const IMG_CHAR *psz8TextB,
 					   	   	   	   IMG_SIZE_T uiOffset,
 					   	   	   	   IMG_SIZE_T uiSize,
 					   	   	   	   IMG_BOOL bIsImport,
@@ -446,7 +451,7 @@ PVRSRV_ERROR RIWriteMEMDESCEntryKM(PMR *hPMR,
 	IMG_UINTPTR_T hashData = 0;
 	PMR 		*pPMRHashKey = hPMR;
 	IMG_PID		pid;
-	IMG_PCHAR pszText = (IMG_PCHAR)ai8TextB;
+	IMG_PCHAR pszText = (IMG_PCHAR)psz8TextB;
 	RI_LIST_ENTRY *psRIEntry = IMG_NULL;
 	RI_SUBLIST_ENTRY *psRISubEntry = IMG_NULL;
 
@@ -515,10 +520,12 @@ PVRSRV_ERROR RIWriteMEMDESCEntryKM(PMR *hPMR,
 
 		psRISubEntry->pid = OSGetCurrentProcessIDKM();
 
+		if (ui32TextBSize > RI_MAX_TEXT_LEN)
+			ui32TextBSize = RI_MAX_TEXT_LEN;
 		/* copy ai8TextB field data */
-		OSSNPrintf((IMG_CHAR *)psRISubEntry->ai8TextB, RI_MAX_TEXT_LEN, "%s", pszText);
+		OSSNPrintf((IMG_CHAR *)psRISubEntry->ai8TextB, ui32TextBSize+1, "%s", pszText);
 		/* ensure string is NUL-terminated */
-		psRISubEntry->ai8TextB[RI_MAX_TEXT_LEN] = '\0';
+		psRISubEntry->ai8TextB[ui32TextBSize] = '\0';
 
 		psRISubEntry->uiOffset = uiOffset;
 		psRISubEntry->uiSize = uiSize;
@@ -869,11 +876,27 @@ IMG_BOOL RIGetListEntryKM(IMG_PID pid,
 	RI_SUBLIST_ENTRY  *psRISubEntry = IMG_NULL;
 	IMG_UINTPTR_T     hashData      = 0;
 	IMG_PID      	  hashKey  = pid;
-	IMG_BOOL		  bDisplaySummary = IMG_FALSE;
+	static IMG_BOOL	  bDisplaySummary = IMG_FALSE;
 	static IMG_CHAR	  ai8DebugfsSummaryString[RI_MAX_DEBUGFS_ENTRY_LEN+1];
 	static IMG_SIZE_T totalAlloc = 0;
 	static IMG_SIZE_T totalImport = 0;
 	static IMG_BOOL bTerminateNextCall = IMG_FALSE;
+
+	if (bDisplaySummary)
+	{
+		OSSNPrintf((IMG_CHAR *)&ai8DebugfsSummaryString[0],
+		            RI_MAX_TEXT_LEN,
+		            "Alloc:0x" IMG_SIZE_FMTSPECX " + Imports:0x" IMG_SIZE_FMTSPECX " = Total:0x" IMG_SIZE_FMTSPECX "\n",
+		            totalAlloc,
+		            totalImport,
+		            (totalAlloc+totalImport));
+		*ppszEntryString = &ai8DebugfsSummaryString[0];
+		totalAlloc = 0;
+		totalImport = 0;
+		bTerminateNextCall = IMG_TRUE;
+		bDisplaySummary = IMG_FALSE;
+		return IMG_TRUE;
+	}
 
 	if (bTerminateNextCall)
 	{
@@ -917,38 +940,29 @@ IMG_BOOL RIGetListEntryKM(IMG_PID pid,
 		{
 			bDisplaySummary = IMG_TRUE;
 		}
+		if (psRISubEntry->bIsImport)
+		{
+			totalImport += psRISubEntry->uiSize;
+		}
 		else
 		{
-			if (psRISubEntry->bIsImport)
-			{
-				totalImport += psRISubEntry->uiSize;
-			}
-			else
-			{
-				totalAlloc += psRISubEntry->uiSize;
-			}
-
-			{
-				_GenerateMEMDESCEntryString(psRISubEntry, IMG_TRUE, RI_MAX_DEBUGFS_ENTRY_LEN, (IMG_CHAR *)&ai8DebugfsSummaryString);
-				ai8DebugfsSummaryString[RI_MAX_DEBUGFS_ENTRY_LEN] = '\0';
-			}
-			*ppszEntryString = (IMG_CHAR *)&ai8DebugfsSummaryString;
-			*ppHandle        = (IMG_HANDLE)IMG_CONTAINER_OF(psNextProcListNode, RI_SUBLIST_ENTRY, sProcListNode);
+			totalAlloc += psRISubEntry->uiSize;
 		}
+
+		_GenerateMEMDESCEntryString(psRISubEntry, IMG_TRUE, RI_MAX_DEBUGFS_ENTRY_LEN, (IMG_CHAR *)&ai8DebugfsSummaryString);
+		ai8DebugfsSummaryString[RI_MAX_DEBUGFS_ENTRY_LEN] = '\0';
+
+		*ppszEntryString = (IMG_CHAR *)&ai8DebugfsSummaryString;
+		*ppHandle        = (IMG_HANDLE)IMG_CONTAINER_OF(psNextProcListNode, RI_SUBLIST_ENTRY, sProcListNode);
 	}
 	else
 	{
 		bDisplaySummary = IMG_TRUE;
-	}
-	if (bDisplaySummary)
-	{
-		/* No more entries found... */
-		/* Create summary text */
-		OSSNPrintf((IMG_CHAR *)&ai8DebugfsSummaryString[0], RI_MAX_TEXT_LEN, "Alloc:0x" IMG_SIZE_FMTSPECX " + Imports:0x" IMG_SIZE_FMTSPECX " = Total:0x" IMG_SIZE_FMTSPECX "\n", totalAlloc, totalImport, totalAlloc+totalImport);
-		*ppszEntryString = &ai8DebugfsSummaryString[0];
-		totalAlloc = 0;
-		totalImport = 0;
-		bTerminateNextCall = IMG_TRUE;
+		if (totalAlloc == 0)
+		{
+			ai8DebugfsSummaryString[0] = '\0';
+			*ppszEntryString = (IMG_CHAR *)&ai8DebugfsSummaryString;
+		}
 	}
 
     /* Release RI lock*/

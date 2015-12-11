@@ -1052,6 +1052,7 @@ static noinline int alloc_debug_processing(struct kmem_cache *s, struct page *pa
 	return 1;
 
 bad:
+	panic("Memory corruption detected in %s\n", __func__);
 	if (PageSlab(page)) {
 		/*
 		 * If this is a slab page then lets do the best we can
@@ -1118,6 +1119,7 @@ out:
 	return n;
 
 fail:
+	panic("Memory corruption detected in %s\n", __func__);
 	slab_unlock(page);
 	spin_unlock_irqrestore(&n->list_lock, *flags);
 	slab_fix(s, "Object at 0x%p not freed", object);
@@ -1263,6 +1265,12 @@ static inline struct page *alloc_slab_page(gfp_t flags, int node,
 	int order = oo_order(oo);
 
 	flags |= __GFP_NOTRACK;
+
+	/*HACK: Force slub allocate 32-bits memory to workaround intel bad silicon
+	 *design which have no IO-MMU support even there have 32-bits peripherals
+	 *and more than 4G DDR.
+	 */
+	flags |= __GFP_DMA32;
 
 	if (node == NUMA_NO_NODE)
 		return alloc_pages(flags, order);

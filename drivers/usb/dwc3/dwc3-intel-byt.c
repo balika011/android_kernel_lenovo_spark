@@ -283,13 +283,9 @@ static irqreturn_t dwc3_gpio_id_irq(int irq, void *dev)
 
 	id = dwc3_check_gpio_id(otg);
 	if(id==1)
-	{
 		gpio_direction_output(USB_EN, 0);
-	}
 	else
-	{
-            gpio_direction_output(USB_EN, 1);
-	}
+		gpio_direction_output(USB_EN, 1);
 	if (id == 0 || id == 1) {
 		if (data->id != id) {
 			data->id = id;
@@ -419,20 +415,18 @@ int dwc3_intel_byt_platform_init(struct dwc_otg2 *otg)
 		}
 
 		otg_dbg(otg, "GPIO ID request/Interrupt reuqest Done\n");
-         	retval=gpio_request(USB_EN,"USB_EN");
-			if(retval<0)
-			{
-			   otg_err(otg, "failed to request USB_EN :148 \n");
-			}
+
+		retval=gpio_request(USB_EN,"USB_EN");
+		if(retval<0)
+			otg_err(otg, "failed to request USB_EN :148 \n");
+
 		id_value = dwc3_check_gpio_id(otg);
-		 if(id_value==1)
-	    {
-		gpio_direction_output(USB_EN, 0);
-	    }
-	   else
-	   {
-          gpio_direction_output(USB_EN, 1);
-	   }
+
+		if(id_value==1)
+			gpio_direction_output(USB_EN, 0);
+		else
+			gpio_direction_output(USB_EN, 1);
+
 		if ((id_value == 0 || id_value == 1) &&
 					(data->id != id_value)) {
 			data->id = id_value;

@@ -48,19 +48,18 @@ struct synaptics_dsx_platform_data {
 	bool y_flip;
 	bool swap_axes;
 	bool regulator_en;
-	bool	power_on_state;
-	bool	reset_on_state;
+	bool power_on_state;
+	bool reset_on_state;
 	unsigned reset_gpio;
 	unsigned irq_gpio;
 	int power_gpio;
 	unsigned long irq_flags;
-	unsigned long irq_type;  //lxh:add 
+	unsigned long irq_type;
 	unsigned reset_delay_ms;
 	unsigned power_delay_ms;
 	unsigned reset_active_ms;
 	unsigned char *regulator_name;
-	// int (*gpio_config)(unsigned gpio, bool configure);
-	int  (*gpio_config)(int gpio, bool configure, int dir, int state);
+	int (*gpio_config)(int gpio, bool configure, int dir, int state);
 	struct synaptics_dsx_cap_button_map *cap_button_map;
 	struct delayed_work late_init_wrkr;
 };

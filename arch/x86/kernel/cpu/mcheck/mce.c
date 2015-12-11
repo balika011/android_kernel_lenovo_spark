@@ -42,6 +42,8 @@
 #include <linux/irq_work.h>
 #include <linux/export.h>
 
+#include <linux/kct.h>
+
 #include <asm/processor.h>
 #include <asm/mce.h>
 #include <asm/msr.h>
@@ -83,6 +85,7 @@ struct mca_config mca_cfg __read_mostly = {
 static unsigned long		mce_need_notify;
 static char			mce_helper[128];
 static char			*mce_helper_argv[2] = { mce_helper, NULL };
+static int			mcelog_kct_last_entry = -1;
 
 static DECLARE_WAIT_QUEUE_HEAD(mce_chrdev_wait);
 
@@ -215,6 +218,7 @@ static void drain_mcelog_buffer(void)
 		}
 
 		memset(mcelog.entry + prev, 0, (next - prev) * sizeof(*m));
+		mcelog_kct_last_entry = -1;
 		prev = next;
 		next = cmpxchg(&mcelog.next, prev, 0);
 	} while (next != prev);

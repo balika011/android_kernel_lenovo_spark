@@ -45,7 +45,6 @@ static int dwc_otg_byt_get_usbspecoverride(void)
 {
 	struct em_config_oem1_data oem1_data;
 	int charge_bit = 1, ret = 0;
-/*//add by zouhao	
 #if 0
 	ret = em_config_get_oem1_data(&oem1_data);
 	if (ret <= 0) {
@@ -54,7 +53,6 @@ static int dwc_otg_byt_get_usbspecoverride(void)
 	}
 	charge_bit = oem1_data.fpo_0 & BIT(0);
 #endif
-*/	
 	pr_info("OEM1 charging bit = %d\n", charge_bit);
 	return charge_bit;
 }

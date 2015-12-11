@@ -49,6 +49,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 extern "C" {
 #endif
 
+#if defined(KERNEL) && defined(ANDROID)
+#define __pvrsrv_defined_struct_enum__
+#include <services_kernel_client.h>
+#endif
 
 /**	Use PVR_DPF() unless message is necessary in release build
  */
@@ -182,9 +186,7 @@ LOOP_UNTIL_TIMEOUT(MAX_HW_TIME_US)
 IMG_IMPORT
 const IMG_CHAR *PVRSRVGetErrorStringKM(PVRSRV_ERROR eError);
 
-/*
-	FIXME: This should be defined elsewhere when server sync are implemented
-*/
+
 typedef struct _SERVER_SYNC_PRIM_
 {
 	/* Placeholder until structure is properly implemented */

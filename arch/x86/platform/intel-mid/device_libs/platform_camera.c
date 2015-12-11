@@ -73,7 +73,6 @@ static struct camera_device_table byt_ffrd8_cam_table[] = {
 		{"ov9760", SFI_DEV_TYPE_I2C, 0, &ov9760_platform_data,
 			&intel_register_i2c_camera_device}
 	},
-
 	{
 		{SFI_DEV_TYPE_I2C, 3, 0x53, 0x0, 0x0, "lm3554"},
 		{"lm3554", SFI_DEV_TYPE_I2C, 0, &lm3554_platform_data_func,
@@ -454,8 +453,8 @@ void __init camera_init_device(void)
 	int i;
 	if (INTEL_MID_BOARD(1, TABLET, BYT)) {
 		if (spid.hardware_id == BYT_TABLET_BLK_8PR0 ||
-		    spid.hardware_id == BYT_TABLET_BLK_8PR1) {
-		    printk("test BYT_TABLET_BLK_8PR 0/1 @function %s  @line %d",__FUNCTION__,__LINE__);
+			spid.hardware_id == BYT_TABLET_BLK_8PR1) {
+			printk("test BYT_TABLET_BLK_8PR 0/1 @function %s  @line %d",__FUNCTION__,__LINE__);
 			table = byt_ffrd8_cam_table;
 			entry_num = ARRAY_SIZE(byt_ffrd8_cam_table);
 		} else if (spid.hardware_id == BYT_TABLET_BLK_CRV2) {
@@ -464,7 +463,6 @@ void __init camera_init_device(void)
 			entry_num = ARRAY_SIZE(byt_crv2_cam_table);
 		} else {
 			printk("test byt_ffrd10_cam_table @function %s  @line %d",__FUNCTION__,__LINE__);
-			
 			table = byt_ffrd10_cam_table;
 			entry_num = ARRAY_SIZE(byt_ffrd10_cam_table);
 		}

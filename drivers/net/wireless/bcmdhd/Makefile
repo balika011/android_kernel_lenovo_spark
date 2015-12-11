@@ -52,14 +52,14 @@ DHDOFILES = aiutils.o \
 	wldev_common.o \
 	wl_android.o \
 
-obj-$(CONFIG_BCMDHD) += bcmdhd.o
-bcmdhd-objs += $(DHDOFILES)
+obj-$(CONFIG_BCMDHD) += bcm4330.o
+bcm4330-objs += $(DHDOFILES)
 ifneq ($(CONFIG_WIRELESS_EXT),)
-bcmdhd-objs += wl_iw.o
+bcm4330-objs += wl_iw.o
 DHDCFLAGS += -DSOFTAP -DWL_WIRELESS_EXT -DUSE_IW
 endif
 ifneq ($(CONFIG_CFG80211),)
-bcmdhd-objs += wl_cfg80211.o wl_cfgp2p.o wl_linux_mon.o dhd_cfg80211.o
+bcm4330-objs += wl_cfg80211.o wl_cfgp2p.o wl_linux_mon.o dhd_cfg80211.o
 DHDCFLAGS += -DWL_CFG80211 -DWL_CFG80211_STA_EVENT
 DHDCFLAGS += -DCUSTOM_ROAM_TRIGGER_SETTING=-65
 DHDCFLAGS += -DCUSTOM_ROAM_DELTA_SETTING=15
@@ -94,7 +94,7 @@ endif
 # Lenovo Spark (Tab S8-50x)
 DHDCFLAGS += -DBCM4330_CHIP
 
-bcmdhd-$(CONFIG_BCMDHD_SDIO) += \
+bcm4330-$(CONFIG_BCMDHD_SDIO) += \
 	bcmsdh.o \
 	bcmsdh_linux.o \
 	bcmsdh_sdmmc.o \

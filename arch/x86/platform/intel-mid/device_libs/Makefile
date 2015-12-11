@@ -44,7 +44,6 @@ obj-$(subst m,y,$(CONFIG_GPIO_PCA953X)) += platform_max7315.o
 obj-$(subst m,y,$(CONFIG_SENSORS_MPU3050)) += platform_mpu3050.o
 obj-$(subst m,y,$(CONFIG_GPIO_PCA953X)) += platform_tca6416.o
 obj-$(subst m,y,$(CONFIG_CHARGER_BQ24192)) += platform_bq24192.o
-obj-$(subst m,y,$(CONFIG_CHARGER_BQ24192)) +=  platform_bq27500.o
 obj-$(subst m,y,$(CONFIG_BQ24261_CHARGER)) += platform_bq24261.o
 obj-$(subst m,y,$(CONFIG_SND_SOC_CS42L73)) += platform_cs42l73.o
 obj-$(subst m,y,$(CONFIG_SND_SOC_WM8994)) += platform_wm8994.o
@@ -54,6 +53,7 @@ obj-$(subst m,y,$(CONFIG_DC_XPWR_BATTERY))	+= platform_dc_xpwr_battery.o
 obj-$(subst m,y,$(CONFIG_DC_XPWR_CHARGER))	+= platform_dc_xpwr_charger.o
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4_FORK)) += platform_rmi4.o
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_R69001_I2C)) += platform_r69001.o
+obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_I2C)) += platform_s7508.o
 obj-$(subst m,y,$(CONFIG_NFC_PN544_PLATFORM_DATA)) += platform_pn544.o
 obj-$(subst m,y,$(CONFIG_SENSORS_L3G4200D_POLL)) += platform_l3g4200d.o
 obj-$(subst m,y,$(CONFIG_SENSORS_LIS3DH_ACC)) += platform_lis3dh.o
@@ -63,10 +63,7 @@ obj-$(subst m,y,$(CONFIG_A1026)) += platform_a1026.o
 obj-$(subst m,y,$(CONFIG_EXTCON_FSA9285)) += platform_fsa9285.o
 obj-$(subst m,y,$(CONFIG_EXTCON_SMSC375X))	+= platform_smsc375x.o
 obj-$(subst m,y,$(CONFIG_SND_SOC_WM5102)) += platform_wm5102.o
-#lxh:add for tp;begin;20140429
-obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_I2C)) += platform_s7508.o
-#lxh:add for tp;end;20140429
-
+obj-$(subst m,y,$(CONFIG_CHARGER_BQ24192)) +=  platform_bq27500.o
 # SPI Devices
 obj-$(subst m,y,$(CONFIG_SERIAL_MRST_MAX3110)) += platform_max3111.o
 # HSI Devices

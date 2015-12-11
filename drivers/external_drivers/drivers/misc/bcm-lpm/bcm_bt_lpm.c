@@ -38,6 +38,8 @@
 #include <linux/acpi.h>
 #include <linux/acpi_gpio.h>
 
+#define LPM_ON
+
 #define BT_SYS_RST_GPIO    53
 
 enum {
@@ -52,8 +54,6 @@ static bool bt_enabled;
 static bool host_wake_uart_enabled;
 static bool wake_uart_enabled;
 static bool int_handler_enabled;
-
-#define LPM_ON
 
 static void activate_irq_handler(void);
 

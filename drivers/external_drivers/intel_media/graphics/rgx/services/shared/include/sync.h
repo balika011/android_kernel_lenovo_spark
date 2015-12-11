@@ -51,6 +51,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _SYNC_
 #define _SYNC_
 
+#if defined(KERNEL) && defined(ANDROID)
+#define __pvrsrv_defined_struct_enum__
+#include <services_kernel_client.h>
+#endif
+
 /*************************************************************************/ /*!
 @Function       SyncPrimContextCreate
 
@@ -103,7 +108,8 @@ SyncPrimContextDestroy(PSYNC_PRIM_CONTEXT hSyncPrimContext);
 /*****************************************************************************/
 PVRSRV_ERROR
 SyncPrimAlloc(PSYNC_PRIM_CONTEXT		hSyncPrimContext,
-			  PVRSRV_CLIENT_SYNC_PRIM	**ppsSync);
+			  PVRSRV_CLIENT_SYNC_PRIM	**ppsSync,
+			  const IMG_CHAR 		*pszClassName);
 
 /*************************************************************************/ /*!
 @Function       SyncPrimFree
@@ -154,7 +160,8 @@ SyncPrimNoHwUpdate(PVRSRV_CLIENT_SYNC_PRIM *psSync, IMG_UINT32 ui32Value);
 PVRSRV_ERROR
 SyncPrimServerAlloc(SYNC_BRIDGE_HANDLE	hBridge,
 					IMG_HANDLE			hDeviceNode,
-					PVRSRV_CLIENT_SYNC_PRIM **ppsSync
+					PVRSRV_CLIENT_SYNC_PRIM **ppsSync,
+					const IMG_CHAR		*pszClassName
 					PVR_DBG_FILELINE_PARAM);
 
 PVRSRV_ERROR

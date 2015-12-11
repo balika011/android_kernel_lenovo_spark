@@ -44,7 +44,7 @@
 
 #define LENOVO_SPARK
 
-#if 1
+#if 0
 #define pr_axs(format, args...) printk("<bat_fg> %s: "format, __func__, ##args)
 #define fg_dbg(format, args...) printk("<fg> %s: "format, __func__, ##args)
 #else
@@ -1009,6 +1009,7 @@ static int bq27x00_battery_temperature(struct bq27x00_device_info *di,
 #else
 	val->intval = di->cache.temperature;
 #endif
+
 	return 0;
 }
 
@@ -1034,7 +1035,7 @@ static int bq27x00_battery_current(struct bq27x00_device_info *di,
 
 	if (di->chip == BQ27500) {
 		/* bq27500 returns signed value */
-		val->intval = (int)((s16)curr) ;
+		val->intval = (int)((s16)curr);
 	} else {
 		if (di->cache.flags & BQ27000_FLAG_CHGS) {
 			dev_dbg(di->dev, "negative current!\n");

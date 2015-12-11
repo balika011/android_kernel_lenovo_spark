@@ -212,12 +212,10 @@ IMG_VOID SysDestroyConfigData(PVRSRV_SYSTEM_CONFIG *psSysConfig)
 #endif
 }
 
-PVRSRV_ERROR SysDebugInfo(PVRSRV_SYSTEM_CONFIG *psSysConfig)
+PVRSRV_ERROR SysDebugInfo(PVRSRV_SYSTEM_CONFIG *psSysConfig, DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf)
 {
 	PVR_UNREFERENCED_PARAMETER(psSysConfig);
-
-
-
+	PVR_UNREFERENCED_PARAMETER(pfnDumpDebugPrintf);
 	return PVRSRV_OK;
 }
 
@@ -267,7 +265,6 @@ static PVRSRV_ERROR SysDevicePostPowerState(
 
 
 PVRSRV_ERROR SysInstallDeviceLISR(IMG_UINT32 ui32IRQ,
-				  IMG_BOOL bShared,
 				  IMG_CHAR *pszName,
 				  PFN_LISR pfnLISR,
 				  IMG_PVOID pvData,

@@ -1033,24 +1033,10 @@ static int kionix_accel_enable(struct kionix_accel_driver *acceld)
 	mutex_lock(&acceld->mutex_earlysuspend);
 
 	atomic_set(&acceld->accel_suspend_continue, 0);
-        //printk("liumiao:the suspend is %d\n",acceld->accel_suspended);
-	/* Make sure that the sensor had successfully resumed before enabling it 
-	if(atomic_read(&acceld->accel_suspended) == 1) {
-		KMSGINF(&acceld->client->dev, "%s: waiting for resume\n", __func__);
-		remaining = wait_event_interruptible_timeout(acceld->wqh_suspend, \
-				atomic_read(&acceld->accel_suspended) == 0, \
-				msecs_to_jiffies(KIONIX_ACCEL_EARLYSUSPEND_TIMEOUT));
 
-		if(atomic_read(&acceld->accel_suspended) == 1) {
-			KMSGERR(&acceld->client->dev, "%s: timeout waiting for resume\n", __func__);
-			err = -ETIME;
-			goto exit;
-		}
-	}*/
-	if(atomic_read(&acceld->accel_enabled) > 0){
+	if(atomic_read(&acceld->accel_enabled) > 0)
 		goto exit;
-		}
-	//liumiao add for clear interrupt
+
 	if(acceld->accel_drdy == 1) {
 		loop = KIONIX_I2C_RETRY_COUNT;
 		while(loop) {
@@ -1065,7 +1051,7 @@ static int kionix_accel_enable(struct kionix_accel_driver *acceld)
 		if (err < 0)
 			KMSGERR(&acceld->client->dev, "%s: clear interrupt error = %d\n", __func__, err);
 	}
-	//liumiao add end
+
 	err = acceld->kionix_accel_operate(acceld);
 
 	if (err < 0) {
@@ -1543,17 +1529,6 @@ void kionix_accel_earlysuspend_suspend(struct early_suspend *h)
 
 	/* Only continue to suspend if enable did not intervene */
 	if(atomic_read(&acceld->accel_suspend_continue) == 0) {
-		/* Make sure that the sensor had successfully disabled before suspending it 
-		if(atomic_read(&acceld->accel_enabled) > 0) {
-			KMSGINF(&acceld->client->dev, "%s: waiting for disable\n", __func__);
-			remaining = wait_event_interruptible_timeout(acceld->wqh_suspend, \
-					atomic_read(&acceld->accel_enabled) < 1, \
-					msecs_to_jiffies(KIONIX_ACCEL_EARLYSUSPEND_TIMEOUT));
-
-			if(atomic_read(&acceld->accel_enabled) > 0) {
-				KMSGERR(&acceld->client->dev, "%s: timeout waiting for disable\n", __func__);
-			}
-		}*/
 		if(atomic_read(&acceld->accel_enabled) > 0)
 			kionix_accel_disable(acceld);
 
@@ -1580,11 +1555,8 @@ void kionix_accel_earlysuspend_resume(struct early_suspend *h)
 		}
 
 		/* Only needs to reinitialized the registers if Vdd is pulled low during suspend */
-
 		atomic_set(&acceld->accel_suspended, 0);
 	}
-
-	//wake_up_interruptible(&acceld->wqh_suspend);
 
 exit:
 	mutex_unlock(&acceld->mutex_resume);
@@ -1599,7 +1571,6 @@ static int  kionix_accel_probe(struct i2c_client *client,
 	const struct kionix_accel_platform_data *accel_pdata = client->dev.platform_data;
 	struct kionix_accel_driver *acceld;
 	int err;
-//	struct proc_dir_entry *proc_dir, *proc_entry;
 
 	if (!i2c_check_functionality(client->adapter,
 				I2C_FUNC_I2C | I2C_FUNC_SMBUS_BYTE_DATA)) {
@@ -1721,18 +1692,14 @@ static int  kionix_accel_probe(struct i2c_client *client,
 					acceld->accel_registers[accel_grp4_ctrl_reg1] |= ACCEL_GRP4_RES_12BIT;
 					break;
 			}
-//......................................................................................................
 
-     
-                  if (acceld->accel_pdata.gpio_int>= 0) 
-       	    {
-                    gpio_request(acceld->accel_pdata.gpio_int, "accel_int1");
-		      gpio_direction_input(acceld->accel_pdata.gpio_int);
-		      client->irq = gpio_to_irq(acceld->accel_pdata.gpio_int);
-		      KMSGERR(&client->dev, "irq1:%d mapped on gpio:%d\n",client->irq, acceld->accel_pdata.gpio_int);
-       	    }
-		
-//.....................................................................................................
+			if (acceld->accel_pdata.gpio_int >= 0) {
+				gpio_request(acceld->accel_pdata.gpio_int, "accel_int1");
+				gpio_direction_input(acceld->accel_pdata.gpio_int);
+				client->irq = gpio_to_irq(acceld->accel_pdata.gpio_int);
+				KMSGERR(&client->dev, "irq1:%d mapped on gpio:%d\n",client->irq, acceld->accel_pdata.gpio_int);
+			}
+
 			if(acceld->accel_pdata.accel_irq_use_drdy && client->irq) {
 				acceld->accel_registers[accel_grp4_int_ctrl] |= ACCEL_GRP4_IEN | ACCEL_GRP4_IEA;
 				acceld->accel_registers[accel_grp4_ctrl_reg1] |= ACCEL_GRP4_DRDYE;
@@ -1771,15 +1738,6 @@ static int  kionix_accel_probe(struct i2c_client *client,
 	acceld->poll_delay = msecs_to_jiffies(acceld->poll_interval);
 	acceld->kionix_accel_update_odr(acceld, acceld->poll_interval);
 	kionix_accel_update_direction(acceld);
-
-//	proc_dir = proc_mkdir("sensors", NULL);
-//	if (proc_dir == NULL)
-//		KMSGERR(&client->dev, "failed to create /proc/sensors\n");
-//	else {
-//		proc_entry = create_proc_entry( "accelinfo", 0644, proc_dir);
-//		if (proc_entry == NULL)
-//			KMSGERR(&client->dev, "failed to create /proc/cpu/accelinfo\n");
-//	}
 
 	acceld->accel_workqueue = create_workqueue("Kionix Accel Workqueue");
 	INIT_DELAYED_WORK(&acceld->accel_work, kionix_accel_work);
@@ -1863,15 +1821,15 @@ static const struct i2c_device_id kionix_accel_id[] = {
 	{ KIONIX_ACCEL_NAME, 0 },
 	{ },
 };
+
 static struct kionix_accel_platform_data accel_pdata = {
-	
-       .min_interval=5,
-	.poll_interval=50,
-       .gpio_int=67,
-       .accel_direction=1,
-       .accel_irq_use_drdy=1,
+	.min_interval = 5,
+	.poll_interval = 50,
+	.gpio_int = 67,
+	.accel_direction = 5,
+	.accel_irq_use_drdy = 1,
 }
-        
+
 MODULE_DEVICE_TABLE(i2c, kionix_accel_id);
 
 static struct i2c_driver kionix_accel_driver = {
@@ -1884,19 +1842,18 @@ static struct i2c_driver kionix_accel_driver = {
 	.id_table	= kionix_accel_id,
 };
 
-static int __init kionix_accel_init(void)   //change by lm
-{     printk("%s:liumiao",__func__);
-       int i2c_busnum = 5;
-        struct i2c_board_info i2c_info;
-        
+static int __init kionix_accel_init(void)
+{
+	struct i2c_board_info i2c_info;
+
 	i2c_add_driver(&kionix_accel_driver);
 	
 	memset(&i2c_info, 0, sizeof(i2c_info));
-       strlcpy(i2c_info.type, "kionix_accel", sizeof("kionix_accel"));
-       
-       i2c_info.addr = 0x0E;
-       i2c_info.platform_data=&accel_pdata;
-       return i2c_register_board_info(i2c_busnum, &i2c_info, 1);
+	strlcpy(i2c_info.type, KIONIX_ACCEL_NAME, sizeof(KIONIX_ACCEL_NAME));
+	i2c_info.addr = KIONIX_ACCEL_I2C_ADDR;
+	i2c_info.platform_data = &accel_pdata;
+
+	return i2c_register_board_info(5, &i2c_info, 1);
 }
 module_init(kionix_accel_init);
 
